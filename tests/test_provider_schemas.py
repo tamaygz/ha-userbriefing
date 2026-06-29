@@ -23,6 +23,10 @@ def test_service_backed_providers_hide_fixed_source_type() -> None:
     weather = WeatherForecastProvider(SimpleNamespace())
     tasks = TaskSummaryProvider(SimpleNamespace())
 
+    assert calendar.describe().supports_alerts is True
+    assert weather.describe().supports_alerts is True
+    assert tasks.describe().supports_alerts is True
+
     calendar_schema = calendar.build_config_schema().schema
     assert {getattr(key, "schema", key) for key in calendar_schema} == {"source_ref", "summary_limit"}
     assert isinstance(
@@ -66,6 +70,7 @@ def test_entity_backed_stub_providers_use_entity_selectors() -> None:
     home_status = HomeStatusProvider(SimpleNamespace())
 
     for provider in (beach, wind, home_status):
+        assert provider.describe().supports_alerts is False
         schema = provider.build_config_schema().schema
         assert {getattr(key, "schema", key) for key in schema} == {"source_ref"}
         assert isinstance(

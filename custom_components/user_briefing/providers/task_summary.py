@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime
+
 from homeassistant.helpers import selector
 
 from ..adapters.todo import TodoAdapter
-from ..models import SnippetResult
+from ..models import AlertItem, SnippetResult
 from .base_stub import StubBriefingProvider
 from .contracts import ProviderAdapter
 from .registry import register_provider
@@ -21,10 +23,86 @@ def _extract_response_section(payload: dict, source_ref: str | None) -> dict:
     return {}
 
 
+def _parse_due_value(value: object) -> datetime | date | None:
+    if not isinstance(value, str) or not value:
+        return None
+
+    if "T" not in value and " " not in value:
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return None
+
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _build_alerts(
+    items: list[dict],
+    *,
+    instance_id: str,
+    provider_key: str,
+    source_ref: object,
+) -> list[AlertItem]:
+    now = datetime.now().astimezone()
+    today = now.date()
+    alerts: list[AlertItem] = []
+    for index, item in enumerate(items):
+        due_value = _parse_due_value(
+            item.get("due_datetime") or item.get("due_date") or item.get("due")
+        )
+        if due_value is None:
+            continue
+
+        summary = str(item.get("summary") or "Untitled task")
+        severity: str | None = None
+        alert_text: str | None = None
+        due_meta: str
+        if isinstance(due_value, datetime):
+            if due_value.tzinfo is None:
+                due_value = due_value.replace(tzinfo=now.tzinfo)
+            due_value = due_value.astimezone(now.tzinfo)
+            due_meta = due_value.isoformat()
+            if due_value < now:
+                severity = "critical"
+                alert_text = f"{summary} is overdue."
+            elif due_value.date() == today:
+                severity = "warning"
+                alert_text = f"{summary} is due today."
+        else:
+            due_meta = due_value.isoformat()
+            if due_value < today:
+                severity = "critical"
+                alert_text = f"{summary} is overdue."
+            elif due_value == today:
+                severity = "warning"
+                alert_text = f"{summary} is due today."
+
+        if severity is None or alert_text is None:
+            continue
+
+        alerts.append(
+            AlertItem(
+                alert_key=f"{instance_id}:task:{index}:due",
+                provider_key=provider_key,
+                severity=severity,
+                title=f"Task alert: {summary}",
+                text=alert_text,
+                source_label=source_ref if isinstance(source_ref, str) else None,
+                meta={"due": due_meta},
+            )
+        )
+
+    return alerts
+
+
 @register_provider
 class TaskSummaryProvider(StubBriefingProvider):
     provider_key = "task_summary"
     provider_name = "Task Summary"
+    supports_alerts = True
     source_type = "todo_entity"
     summary_limit_default = 5
 
@@ -82,4 +160,10 @@ class TaskSummaryProvider(StubBriefingProvider):
             scenario="tasks_ready",
             data={"items": open_items},
             meta={"source_ref": source_ref},
+            alerts=_build_alerts(
+                open_items,
+                instance_id=instance_id,
+                provider_key=self.describe().key,
+                source_ref=source_ref,
+            ),
         )

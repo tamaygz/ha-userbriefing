@@ -1,6 +1,7 @@
 """Focused tests for real built-in provider behavior."""
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 
@@ -33,6 +34,29 @@ def test_calendar_provider_collects_and_normalizes_events() -> None:
     assert "Standup at 09:00" in snippet.text
 
 
+def test_calendar_provider_emits_alert_for_soon_event() -> None:
+    provider = CalendarProvider(SimpleNamespace(services=_FakeServices({})))
+    soon = (datetime.now(UTC) + timedelta(minutes=30)).isoformat()
+
+    snippet = provider.normalize(
+        {
+            "available": True,
+            "source_ref": "calendar.work",
+            "summary_limit": 3,
+            "response": {
+                "calendar.work": {
+                    "events": [{"summary": "Standup", "start": {"dateTime": soon}}]
+                }
+            },
+        },
+        "calendar-1",
+    )
+
+    assert snippet.alerts
+    assert snippet.alerts[0].severity == "warning"
+    assert snippet.alerts[0].source_label == "calendar.work"
+
+
 def test_weather_provider_collects_and_normalizes_forecast() -> None:
     services = _FakeServices({"weather.home": {"forecast": [{"condition": "sunny", "temperature": 25, "templow": 18}]}})
     provider = WeatherForecastProvider(SimpleNamespace(services=services))
@@ -44,6 +68,28 @@ def test_weather_provider_collects_and_normalizes_forecast() -> None:
     assert services.calls[0][2]["type"] == "daily"
     assert snippet.status == "ok"
     assert snippet.text == "Forecast: sunny, high 25°, low 18°."
+
+
+def test_weather_provider_emits_alert_for_severe_conditions() -> None:
+    provider = WeatherForecastProvider(SimpleNamespace(services=_FakeServices({})))
+
+    snippet = provider.normalize(
+        {
+            "available": True,
+            "source_ref": "weather.home",
+            "summary_limit": 2,
+            "response": {
+                "weather.home": {
+                    "forecast": [{"condition": "lightning", "temperature": 22, "templow": 17}]
+                }
+            },
+        },
+        "weather-1",
+    )
+
+    assert snippet.alerts
+    assert snippet.alerts[0].severity == "warning"
+    assert "lightning" in snippet.alerts[0].text
 
 
 def test_task_summary_provider_collects_and_filters_open_tasks() -> None:
@@ -66,6 +112,31 @@ def test_task_summary_provider_collects_and_filters_open_tasks() -> None:
     assert services.calls[0][2]["status"] == ["needs_action"]
     assert snippet.status == "ok"
     assert snippet.text == "Open tasks: Buy milk."
+
+
+def test_task_summary_provider_emits_alerts_for_due_tasks() -> None:
+    provider = TaskSummaryProvider(SimpleNamespace(services=_FakeServices({})))
+    today = datetime.now(UTC).date().isoformat()
+
+    snippet = provider.normalize(
+        {
+            "available": True,
+            "source_ref": "todo.home",
+            "summary_limit": 5,
+            "response": {
+                "todo.home": {
+                    "items": [
+                        {"summary": "Pay bill", "status": "needs_action", "due": "2000-01-01"},
+                        {"summary": "Call mom", "status": "needs_action", "due": today},
+                    ]
+                }
+            },
+        },
+        "tasks-1",
+    )
+
+    assert [alert.severity for alert in snippet.alerts] == ["critical", "warning"]
+    assert snippet.alerts[0].source_label == "todo.home"
 
 
 def test_compliment_provider_returns_local_phrase() -> None:
