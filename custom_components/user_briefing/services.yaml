@@ -7,7 +7,8 @@ generate:
       description: Profile config entry identifier.
       required: true
       selector:
-        text:
+        config_entry:
+          integration: user_briefing
 
 preview:
   name: Preview briefing
@@ -18,7 +19,8 @@ preview:
       description: Profile config entry identifier.
       required: true
       selector:
-        text:
+        config_entry:
+          integration: user_briefing
 
 deliver:
   name: Deliver briefing
@@ -29,7 +31,8 @@ deliver:
       description: Profile config entry identifier.
       required: true
       selector:
-        text:
+        config_entry:
+          integration: user_briefing
 
 refresh_snippet:
   name: Refresh snippet
@@ -40,7 +43,8 @@ refresh_snippet:
       description: Profile config entry identifier.
       required: true
       selector:
-        text:
+        config_entry:
+          integration: user_briefing
     subentry_id:
       name: Subentry ID
       description: Snippet subentry identifier.
