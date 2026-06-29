@@ -124,7 +124,7 @@ Read in this order:
 ## Docs
 
 - `docs/setup.md`
-  - Short setup intent for the integration.
+  - Home Assistant setup and fastest current HACS testing path.
 - `docs/configuration.md`
   - Summary of how data, options, and subentries are split.
 - `docs/services.md`
@@ -138,6 +138,10 @@ All integration code lives under `custom_components/user_briefing/`.
 
 - `manifest.json`
   - Home Assistant integration metadata.
+- `brand/icon.png`
+  - Temporary placeholder HACS/Home Assistant brand icon for testing and presentation.
+- `brand/logo.png`
+  - Temporary placeholder HACS/Home Assistant brand logo for testing and presentation.
 - `__init__.py`
   - Integration bootstrap and config-entry setup/unload.
 - `const.py`
@@ -247,7 +251,30 @@ Adapter code lives under `custom_components/user_briefing/adapters/`.
    - subentry-based snippet setup
 5. Do not turn notification logic into a full delivery system yet unless the task explicitly asks for that.
 6. Reuse existing Home Assistant ecosystems for tasks and other data sources; do not rebuild upstream integrations inside this project.
-7. Update `TODO.md` when significant implementation milestones are completed.
+7. Keep progress tracking in sync in both places:
+  - update `TODO.md` when significant implementation milestones are completed or when task wording/scope changes
+  - update the corresponding GitHub issue when work progresses, scope changes, blockers are found, or the task is completed
+  - if a `TODO.md` item already links to a GitHub issue, treat that issue as the canonical remote progress tracker for the task
+  - if you complete a meaningful sub-part of a task but not the whole item, leave the TODO unchecked and add a progress note to the GitHub issue plus any clarifying note needed in `TODO.md`
+8. When starting work on a linked backlog item, read both the local `TODO.md` entry and the linked GitHub issue before editing code.
+9. When finishing work on a linked backlog item, make sure the local `TODO.md` state, the linked GitHub issue status/comments, and the code/docs all agree.
+
+## Progress Tracking Workflow
+
+Use this workflow whenever a task in `TODO.md` has a linked GitHub issue:
+
+1. Open the linked GitHub issue before implementation and read its references.
+2. If you narrow or expand the task scope, update both the issue and `TODO.md` wording if needed.
+3. After meaningful progress, add a concise progress update to the GitHub issue.
+4. If a task is fully completed, update `TODO.md` and close or otherwise resolve the GitHub issue appropriately.
+5. If a task is only partially completed, keep the TODO item open and record what remains in the issue.
+
+Preferred GitHub issue update content:
+
+- what changed
+- what remains
+- any new constraint, blocker, or design decision
+- links to relevant commits, files, or follow-up issues when helpful
 
 ## What Is Still Stubbed
 
