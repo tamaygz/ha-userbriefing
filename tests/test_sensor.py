@@ -216,7 +216,7 @@ def test_async_setup_entry_falls_back_without_config_subentry_id_support() -> No
     assert len(new_snippet_entities) == 1
     assert len(new_snippet_status_entities) == 1
     # All calls after setup should have empty kwargs (flag stayed False)
-    assert all(c == {} for c in recorder.calls[3:])  # calls[0:3] are profile sensors
+    assert all(c == {} for c in recorder.calls[3:])  # calls[0] is setup; calls[1:3] are initial snippet entities
 
 
 def test_generated_at_and_snippet_status_entities_expose_dedicated_state() -> None:
