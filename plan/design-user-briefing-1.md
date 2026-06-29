@@ -45,7 +45,7 @@
 - [ ] TASK-016: Decide and implement the final dedicated entity surface for generated-at and per-snippet status, or revise architecture docs to match the chosen entity model.
 - [ ] TASK-017: Expand automated tests for coordinator behavior, flow behavior, service responses, and runtime edge cases.
 - [ ] TASK-018: Replace placeholder phrase assets with real scenario-based phrase banks and add rendering coverage.
-- [ ] TASK-019: Define and implement a shared alert contract so providers can emit structured alerts independently of their normal snippet text.
+- [x] TASK-019: Define and implement a shared alert contract so providers can emit structured alerts independently of their normal snippet text.
 - [ ] TASK-020: Implement alert promotion, severity ordering, and alert-aware rendering in the coordinator and renderer.
 - [ ] TASK-021: Add dashboard fragments or cards for promoted alerts so alert state is visible before normal informational snippets.
 - [x] TASK-022: Provide reusable adapter primitives (`HomeAssistantEntityAdapter`, `HomeAssistantServiceAdapter`) and a provider `get_adapter()` seam so existing integrations can be consumed with minimal provider code.

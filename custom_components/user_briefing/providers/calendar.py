@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from homeassistant.helpers import selector
 
 from ..adapters.calendar import CalendarAdapter
-from ..models import SnippetResult
+from ..models import AlertItem, SnippetResult
 from .base_stub import StubBriefingProvider
 from .contracts import ProviderAdapter
 from .registry import register_provider
+
+_SOON_EVENT_WINDOW = timedelta(hours=1)
 
 
 def _extract_response_section(payload: dict, source_ref: str | None) -> dict:
@@ -39,10 +41,54 @@ def _format_event_time(event: dict) -> str | None:
     return None
 
 
+def _parse_event_start(event: dict) -> datetime | None:
+    start = event.get("start") or {}
+    raw_start = start.get("dateTime")
+    if not raw_start:
+        return None
+
+    try:
+        return datetime.fromisoformat(raw_start.replace("Z", "+00:00")).astimezone()
+    except ValueError:
+        return None
+
+
+def _build_alerts(
+    events: list[dict],
+    *,
+    instance_id: str,
+    provider_key: str,
+    source_ref: object,
+) -> list[AlertItem]:
+    now = datetime.now().astimezone()
+    alerts: list[AlertItem] = []
+    for index, event in enumerate(events):
+        start = _parse_event_start(event)
+        if start is None or start < now or start - now > _SOON_EVENT_WINDOW:
+            continue
+
+        summary = str(event.get("summary") or "Untitled event")
+        when = _format_event_time(event) or start.isoformat()
+        alerts.append(
+            AlertItem(
+                alert_key=f"{instance_id}:event:{index}:starting_soon",
+                provider_key=provider_key,
+                severity="warning",
+                title=f"Calendar soon: {summary}",
+                text=f"{summary} starts at {when}.",
+                source_label=source_ref if isinstance(source_ref, str) else None,
+                meta={"start": start.isoformat()},
+            )
+        )
+
+    return alerts
+
+
 @register_provider
 class CalendarProvider(StubBriefingProvider):
     provider_key = "calendar"
     provider_name = "Calendar Summary"
+    supports_alerts = True
     source_type = "calendar_entity"
     summary_limit_default = 3
 
@@ -104,4 +150,10 @@ class CalendarProvider(StubBriefingProvider):
             scenario="upcoming_events",
             data={"events": events},
             meta={"source_ref": source_ref},
+            alerts=_build_alerts(
+                events,
+                instance_id=instance_id,
+                provider_key=self.describe().key,
+                source_ref=source_ref,
+            ),
         )

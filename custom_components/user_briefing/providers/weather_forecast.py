@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+from ..models import AlertItem, SnippetResult
 from homeassistant.helpers import selector
 
 from ..adapters.weather import WeatherAdapter
-from ..models import SnippetResult
 from .base_stub import StubBriefingProvider
 from .contracts import ProviderAdapter
 from .registry import register_provider
+
+_SEVERE_CONDITIONS = {
+    "exceptional",
+    "hail",
+    "lightning",
+    "lightning-rainy",
+    "pouring",
+    "snowy-rainy",
+}
 
 
 def _extract_response_section(payload: dict, source_ref: str | None) -> dict:
@@ -41,10 +50,55 @@ def _describe_forecast(forecast: dict) -> str:
     return condition
 
 
+def _build_alerts(
+    forecast_items: list[dict],
+    *,
+    instance_id: str,
+    provider_key: str,
+    source_ref: object,
+) -> list[AlertItem]:
+    alerts: list[AlertItem] = []
+    for index, forecast in enumerate(forecast_items):
+        condition = str(forecast.get("condition") or "").lower()
+        precipitation_probability = forecast.get("precipitation_probability")
+        if isinstance(precipitation_probability, float) and precipitation_probability.is_integer():
+            precipitation_probability = int(precipitation_probability)
+
+        if condition in _SEVERE_CONDITIONS:
+            alerts.append(
+                AlertItem(
+                    alert_key=f"{instance_id}:forecast:{index}:condition",
+                    provider_key=provider_key,
+                    severity="warning",
+                    title="Weather alert",
+                    text=f"Watch for {condition.replace('-', ' ').replace('_', ' ')} conditions.",
+                    source_label=source_ref if isinstance(source_ref, str) else None,
+                    meta={"condition": condition},
+                )
+            )
+            continue
+
+        if isinstance(precipitation_probability, (int, float)) and precipitation_probability >= 70:
+            alerts.append(
+                AlertItem(
+                    alert_key=f"{instance_id}:forecast:{index}:precipitation",
+                    provider_key=provider_key,
+                    severity="warning",
+                    title="Weather alert",
+                    text=f"High rain chance ahead ({precipitation_probability}%).",
+                    source_label=source_ref if isinstance(source_ref, str) else None,
+                    meta={"precipitation_probability": precipitation_probability},
+                )
+            )
+
+    return alerts
+
+
 @register_provider
 class WeatherForecastProvider(StubBriefingProvider):
     provider_key = "weather_forecast"
     provider_name = "Weather Forecast"
+    supports_alerts = True
     source_type = "weather_entity"
     summary_limit_default = 3
 
@@ -99,4 +153,10 @@ class WeatherForecastProvider(StubBriefingProvider):
             scenario="forecast_ready",
             data={"forecast": forecast_items},
             meta={"source_ref": source_ref},
+            alerts=_build_alerts(
+                visible_forecast,
+                instance_id=instance_id,
+                provider_key=self.describe().key,
+                source_ref=source_ref,
+            ),
         )

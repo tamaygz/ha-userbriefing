@@ -21,6 +21,7 @@ class StubBriefingProvider(BriefingProvider):
     supports_actions = False
     supports_deep_link = False
     supports_dashboard_card = True
+    supports_alerts = False
     source_type = "entity"
     summary_limit_default: int | None = 3
 
@@ -35,6 +36,7 @@ class StubBriefingProvider(BriefingProvider):
             supports_actions=cls.supports_actions,
             supports_deep_link=cls.supports_deep_link,
             supports_dashboard_card=cls.supports_dashboard_card,
+            supports_alerts=cls.supports_alerts,
         )
 
     def build_source_ref_selector(self):
