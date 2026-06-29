@@ -19,6 +19,7 @@ from .const import (
     SNIPPET_COMMON_SETTING_KEYS,
     SUBENTRY_TYPE_SNIPPET,
 )
+from .dashboard import build_dashboard_delivery_payload
 from .models import BriefingResult
 from .providers.registry import create_provider, ensure_builtin_providers_loaded
 from .rendering import render_briefing_text
@@ -125,6 +126,11 @@ class UserBriefingCoordinator:
             snippets=snippets,
         )
         result.rendered_text = render_briefing_text(result)
+        result.delivery_payloads["dashboard"] = build_dashboard_delivery_payload(
+            self.hass,
+            self.entry,
+            result,
+        )
         if persist:
             self.last_result = result
             self._notify_listeners()

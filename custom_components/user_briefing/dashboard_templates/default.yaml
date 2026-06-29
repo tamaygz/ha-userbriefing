@@ -1,8 +1,35 @@
-title: User Briefing
+title: Alex User Briefing
 views:
-  - title: Overview
-    path: briefing
+  - title: Alex
+    path: alex-briefing
     cards:
+      - type: markdown
+        title: Briefing Alerts
+        content: >
+          - **WARNING** Calendar soon: Standup starts at 09:00. (calendar.work)
       - type: entities
         title: Briefing Overview
-        entities: []
+        entities:
+          - sensor.alex_briefing
+          - sensor.alex_briefing_status
+          - sensor.alex_briefing_last_generated
+      - type: entities
+        title: Calendar Summary
+        entities:
+          - sensor.alex_calendar
+          - sensor.alex_calendar_status
+      - type: entities
+        title: Weather Forecast
+        entities:
+          - sensor.alex_weather
+          - sensor.alex_weather_status
+      - type: entities
+        title: Task Summary
+        entities:
+          - sensor.alex_tasks
+          - sensor.alex_tasks_status
+      - type: entities
+        title: Compliment
+        entities:
+          - sensor.alex_compliment
+          - sensor.alex_compliment_status
