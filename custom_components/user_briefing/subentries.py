@@ -11,9 +11,9 @@ def iter_config_subentries(config_entry: Any, subentry_type: str | None = None) 
     subentries = getattr(config_entry, "subentries", ())
 
     if isinstance(subentries, dict):
-        values = tuple(subentries.values())
-        if values and hasattr(values[0], "subentry_type"):
-            for subentry in values:
+        first_value = next(iter(subentries.values()), None)
+        if first_value is not None and hasattr(first_value, "subentry_type"):
+            for subentry in subentries.values():
                 if subentry_type is None or getattr(subentry, "subentry_type", None) == subentry_type:
                     yield subentry
             return
