@@ -15,16 +15,16 @@
 
 ## Follow-up Work
 
-- [ ] Implement dynamic snippet entity lifecycle so add, update, and remove of subentries are reflected without relying on manual reload assumptions.
-- [ ] Replace scaffold providers with real provider implementations one by one, starting with calendar, weather, task-summary, and compliment.
-- [ ] Replace generic provider stub schemas with provider-specific setup and reconfigure selectors wherever Home Assistant offers stronger UX primitives.
-- [ ] Implement structured alert support so providers can emit alerts separately from normal snippet text.
-- [ ] Implement core composer logic that sorts promoted alerts to the top of the briefing before standard snippet content.
-- [ ] Implement dashboard fragment composition into richer generated templates and expose at least one end-to-end per-user dashboard example.
-- [ ] Implement notification payload helpers without enabling full delivery workflows yet.
-- [ ] Add dedicated generated-at and per-snippet status entities, or explicitly revise the architecture/docs if attributes remain the long-term model.
-- [ ] Expand service behavior tests to cover `generate`, `preview` response payloads, `refresh_snippet`, required target semantics, and unknown `config_entry_id` handling.
-- [ ] Add flow behavior tests for post-create subentry chaining, duplicate-source prevention, singleton providers, and provider-driven reconfigure.
-- [ ] Add coordinator tests for respecting `enabled`, `order`, `priority`, partial provider failure, and preview non-mutation.
-- [ ] Add coordinator and rendering tests for alert severity ordering and alert promotion above normal content.
-- [ ] Replace placeholder phrase assets with real per-provider scenario banks and add rendering tests for scenario selection.
+- [ ] [Implement dynamic snippet entity lifecycle so add, update, and remove of subentries are reflected without relying on manual reload assumptions.](https://github.com/tamaygz/ha-userbriefing/issues/14)
+- [ ] [Replace scaffold providers with real provider implementations one by one, starting with calendar, weather, task-summary, and compliment.](https://github.com/tamaygz/ha-userbriefing/issues/15)
+- [ ] [Replace generic provider stub schemas with provider-specific setup and reconfigure selectors wherever Home Assistant offers stronger UX primitives.](https://github.com/tamaygz/ha-userbriefing/issues/16)
+- [ ] [Implement structured alert support so providers can emit alerts separately from normal snippet text.](https://github.com/tamaygz/ha-userbriefing/issues/17)
+- [ ] [Implement core composer logic that sorts promoted alerts to the top of the briefing before standard snippet content.](https://github.com/tamaygz/ha-userbriefing/issues/18)
+- [ ] [Implement dashboard fragment composition into richer generated templates and expose at least one end-to-end per-user dashboard example.](https://github.com/tamaygz/ha-userbriefing/issues/19)
+- [ ] [Implement notification payload helpers without enabling full delivery workflows yet.](https://github.com/tamaygz/ha-userbriefing/issues/20)
+- [ ] [Add dedicated generated-at and per-snippet status entities, or explicitly revise the architecture/docs if attributes remain the long-term model.](https://github.com/tamaygz/ha-userbriefing/issues/21)
+- [ ] [Expand service behavior tests to cover `generate`, `preview` response payloads, `refresh_snippet`, required target semantics, and unknown `config_entry_id` handling.](https://github.com/tamaygz/ha-userbriefing/issues/22)
+- [ ] [Add flow behavior tests for post-create subentry chaining, duplicate-source prevention, singleton providers, and provider-driven reconfigure.](https://github.com/tamaygz/ha-userbriefing/issues/23)
+- [ ] [Add coordinator tests for respecting `enabled`, `order`, `priority`, partial provider failure, and preview non-mutation.](https://github.com/tamaygz/ha-userbriefing/issues/24)
+- [ ] [Add coordinator and rendering tests for alert severity ordering and alert promotion above normal content.](https://github.com/tamaygz/ha-userbriefing/issues/25)
+- [ ] [Replace placeholder phrase assets with real per-provider scenario banks and add rendering tests for scenario selection.](https://github.com/tamaygz/ha-userbriefing/issues/26)
