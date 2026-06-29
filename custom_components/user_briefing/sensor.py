@@ -3,7 +3,7 @@
 from __future__ import annotations
 from collections.abc import Iterable
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -25,6 +25,7 @@ async def async_setup_entry(
         [
             UserBriefingSummarySensor(coordinator, entry),
             UserBriefingStatusSensor(coordinator, entry),
+            UserBriefingGeneratedAtSensor(coordinator, entry),
         ]
     )
     snippet_entity_manager = UserBriefingSnippetEntityManager(
@@ -50,7 +51,7 @@ class UserBriefingSnippetEntityManager:
         self._coordinator = coordinator
         self._entry = entry
         self._async_add_entities = async_add_entities
-        self._entities: dict[str, UserBriefingSnippetSensor] = {}
+        self._entities: dict[str, list[UserBriefingSnippetEntity]] = {}
         self._supports_config_subentry_id = True
 
     async def async_handle_entry_update(
@@ -75,29 +76,38 @@ class UserBriefingSnippetEntityManager:
 
         removed_ids = set(self._entities) - set(subentries)
         for subentry_id in removed_ids:
-            await self._entities.pop(subentry_id).async_remove()
+            for entity in self._entities.pop(subentry_id):
+                await entity.async_remove()
 
-        new_entities: list[UserBriefingSnippetSensor] = []
+        new_entities: list[UserBriefingSnippetEntity] = []
         for subentry_id, subentry in subentries.items():
-            entity = self._entities.get(subentry_id)
-            if entity is None:
-                entity = UserBriefingSnippetSensor(
-                    self._coordinator,
-                    self._entry,
-                    subentry,
-                )
-                self._entities[subentry_id] = entity
-                new_entities.append(entity)
+            entities = self._entities.get(subentry_id)
+            if entities is None:
+                entities = [
+                    UserBriefingSnippetSensor(
+                        self._coordinator,
+                        self._entry,
+                        subentry,
+                    ),
+                    UserBriefingSnippetStatusSensor(
+                        self._coordinator,
+                        self._entry,
+                        subentry,
+                    ),
+                ]
+                self._entities[subentry_id] = entities
+                new_entities.extend(entities)
                 continue
 
-            entity.update_from_entry(self._entry, subentry)
-            entity.async_write_ha_state()
+            for entity in entities:
+                entity.update_from_entry(self._entry, subentry)
+                entity.async_write_ha_state()
 
         self._async_add_snippet_entities(new_entities)
 
     def _async_add_snippet_entities(
         self,
-        entities: Iterable[UserBriefingSnippetSensor],
+        entities: Iterable[UserBriefingSnippetEntity],
     ) -> None:
         """Add snippet entities with subentry association when supported."""
         for entity in entities:
@@ -152,15 +162,38 @@ class UserBriefingStatusSensor(UserBriefingEntity, SensorEntity):
         return briefing_result.summary_state
 
 
-class UserBriefingSnippetSensor(UserBriefingEntity, SensorEntity):
-    """Sensor exposing one snippet instance output."""
+class UserBriefingGeneratedAtSensor(UserBriefingEntity, SensorEntity):
+    """Sensor exposing when the briefing was last generated."""
 
-    _attr_icon = "mdi:view-list-outline"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:clock-outline"
+
+    def __init__(self, coordinator: UserBriefingCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_generated_at"
+        self._attr_name = f"{entry.title} Briefing Last Generated"
+
+    @property
+    def native_value(self):
+        """Return the last generated timestamp."""
+        briefing_result = self.coordinator.last_result
+        if briefing_result is None:
+            return None
+        return briefing_result.generated_at
+
+
+class UserBriefingSnippetEntity(UserBriefingEntity, SensorEntity):
+    """Base sensor for one snippet-backed entity."""
+
+    _name_suffix = ""
+    _unique_id_suffix = ""
 
     def __init__(self, coordinator: UserBriefingCoordinator, entry: ConfigEntry, subentry: object) -> None:
         super().__init__(coordinator)
         self._subentry_id = str(getattr(subentry, "subentry_id", "unknown"))
-        self._attr_unique_id = f"{entry.entry_id}_{self._subentry_id}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{self._subentry_id}{self._unique_id_suffix}"
+        )
         self.update_from_entry(entry, subentry)
 
     @property
@@ -171,18 +204,29 @@ class UserBriefingSnippetSensor(UserBriefingEntity, SensorEntity):
     def update_from_entry(self, entry: ConfigEntry, subentry: object) -> None:
         """Refresh entity metadata from the latest entry and subentry."""
         title = getattr(subentry, "title", "Snippet")
-        self._attr_name = f"{entry.title} {title}"
+        suffix = f" {self._name_suffix}" if self._name_suffix else ""
+        self._attr_name = f"{entry.title} {title}{suffix}"
+
+    def _get_snippet_result(self):
+        """Return the latest snippet result for this entity."""
+        return self.coordinator.get_snippet_result(self._subentry_id)
+
+
+class UserBriefingSnippetSensor(UserBriefingSnippetEntity):
+    """Sensor exposing one snippet instance output."""
+
+    _attr_icon = "mdi:view-list-outline"
 
     @property
     def native_value(self) -> str | None:
-        snippet = self.coordinator.get_snippet_result(self._subentry_id)
+        snippet = self._get_snippet_result()
         if snippet is None:
             return None
         return snippet.text
 
     @property
     def extra_state_attributes(self) -> dict[str, str | int] | None:
-        snippet = self.coordinator.get_snippet_result(self._subentry_id)
+        snippet = self._get_snippet_result()
         if snippet is None:
             return super().extra_state_attributes
 
@@ -190,7 +234,39 @@ class UserBriefingSnippetSensor(UserBriefingEntity, SensorEntity):
         attributes.update(
             {
                 "provider_key": snippet.provider_key,
-                "status": snippet.status,
+                "priority": snippet.priority,
+                "scenario": snippet.scenario,
+            }
+        )
+        return attributes
+
+
+class UserBriefingSnippetStatusSensor(UserBriefingSnippetEntity):
+    """Sensor exposing one snippet instance status."""
+
+    _attr_icon = "mdi:list-status"
+    _name_suffix = "Status"
+    _unique_id_suffix = "_status"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the latest snippet status."""
+        snippet = self._get_snippet_result()
+        if snippet is None:
+            return None
+        return snippet.status
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | int] | None:
+        """Return snippet metadata attributes."""
+        snippet = self._get_snippet_result()
+        if snippet is None:
+            return super().extra_state_attributes
+
+        attributes = super().extra_state_attributes or {}
+        attributes.update(
+            {
+                "provider_key": snippet.provider_key,
                 "priority": snippet.priority,
                 "scenario": snippet.scenario,
             }

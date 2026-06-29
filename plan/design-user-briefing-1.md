@@ -42,7 +42,7 @@
 - [x] TASK-013: Implement provider-specific reconfigure schemas and richer selectors for built-in providers.
 - [ ] TASK-014: Implement dashboard fragment composition and at least one full per-user dashboard template generated from provider fragments.
 - [ ] TASK-015: Implement notification payload helper generation while keeping delivery workflows stubbed.
-- [ ] TASK-016: Decide and implement the final dedicated entity surface for generated-at and per-snippet status, or revise architecture docs to match the chosen entity model.
+- [x] TASK-016: Decide and implement the final dedicated entity surface for generated-at and per-snippet status, or revise architecture docs to match the chosen entity model.
 - [ ] TASK-017: Expand automated tests for coordinator behavior, flow behavior, service responses, and runtime edge cases.
 - [ ] TASK-018: Replace placeholder phrase assets with real scenario-based phrase banks and add rendering coverage.
 - [x] TASK-019: Define and implement a shared alert contract so providers can emit structured alerts independently of their normal snippet text.
