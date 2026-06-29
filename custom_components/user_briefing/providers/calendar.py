@@ -29,7 +29,8 @@ def _format_event_time(event: dict) -> str | None:
     raw_start = start.get("dateTime")
     if raw_start:
         try:
-            return datetime.fromisoformat(raw_start.replace("Z", "+00:00")).strftime("%H:%M")
+            parsed = datetime.fromisoformat(raw_start.replace("Z", "+00:00"))
+            return parsed.astimezone().strftime("%H:%M")
         except ValueError:
             return raw_start
 
