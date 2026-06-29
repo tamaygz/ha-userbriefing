@@ -46,7 +46,7 @@ def _build_alerts(
     provider_key: str,
     source_ref: object,
 ) -> list[AlertItem]:
-    now = datetime.now(UTC)
+    now = datetime.now().astimezone()
     today = now.date()
     alerts: list[AlertItem] = []
     for index, item in enumerate(items):
@@ -62,7 +62,8 @@ def _build_alerts(
         due_meta: str
         if isinstance(due_value, datetime):
             if due_value.tzinfo is None:
-                due_value = due_value.replace(tzinfo=UTC)
+                due_value = due_value.replace(tzinfo=now.tzinfo)
+            due_value = due_value.astimezone(now.tzinfo)
             due_meta = due_value.isoformat()
             if due_value < now:
                 severity = "critical"
