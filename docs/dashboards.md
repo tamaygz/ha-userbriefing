@@ -23,4 +23,4 @@ Generated dashboard composition now adds:
 - provider fragment cards when a provider declares them
 - a fallback snippet card when a provider does not declare dashboard fragments
 
-The packaged templates under `custom_components/user_briefing/dashboard_templates/` now include end-to-end Alex examples for the default and compact layouts.
+The packaged templates under `custom_components/user_briefing/dashboard_templates/` now include end-to-end Alex examples for the default and compact layouts. Entity IDs in these templates are illustrative and may differ in your entity registry.
