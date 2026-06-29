@@ -126,11 +126,14 @@ class UserBriefingCoordinator:
             snippets=snippets,
         )
         result.rendered_text = render_briefing_text(result)
-        result.delivery_payloads["dashboard"] = build_dashboard_delivery_payload(
-            self.hass,
-            self.entry,
-            result,
-        )
+        try:
+            result.delivery_payloads["dashboard"] = build_dashboard_delivery_payload(
+                self.hass,
+                self.entry,
+                result,
+            )
+        except Exception as err:  # pragma: no cover - defensive scaffolding
+            _LOGGER.exception("Dashboard composition failed: %s", err)
         if persist:
             self.last_result = result
             self._notify_listeners()
