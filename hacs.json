@@ -1,0 +1,8 @@
+{
+  "name": "User Briefing",
+  "content_in_root": false,
+  "filename": "user_briefing",
+  "render_readme": true,
+  "homeassistant": "2026.6.0",
+  "hacs": "2.0.5"
+}

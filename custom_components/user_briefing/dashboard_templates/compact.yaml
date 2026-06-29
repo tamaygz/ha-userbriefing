@@ -1,0 +1,9 @@
+title: User Briefing Compact
+views:
+  - title: Compact
+    path: briefing-compact
+    cards:
+      - type: markdown
+        title: Compact Briefing
+        content: >
+          Dashboard fragments will be composed here from provider-declared cards.

@@ -1,0 +1,124 @@
+{
+  "title": "User Briefing",
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Create briefing profile",
+        "description": "Set up the identity and presentation defaults for one user's briefing.",
+        "data": {
+          "display_name": "Display name",
+          "user_key": "User key",
+          "locale": "Locale",
+          "identity": "Identity",
+          "presentation": "Presentation"
+        },
+        "data_description": {
+          "display_name": "Human-friendly name used in the UI and generated content.",
+          "user_key": "Stable internal key used for this user's profile.",
+          "locale": "Default locale for provider text and formatting."
+        },
+        "sections": {
+          "identity": {
+            "name": "Identity",
+            "description": "Who this briefing profile belongs to."
+          },
+          "presentation": {
+            "name": "Presentation",
+            "description": "Language and presentation defaults."
+          }
+        }
+      },
+      "defaults": {
+        "title": "Set defaults",
+        "description": "Choose dashboard and output defaults for this briefing profile.",
+        "data": {
+          "dashboard_template": "Dashboard template",
+          "dashboard_path": "Dashboard path",
+          "default_delivery_mode": "Default delivery mode",
+          "rendering_style": "Rendering style"
+        },
+        "data_description": {
+          "dashboard_template": "Template used when assembling dashboard fragments for this user.",
+          "dashboard_path": "Optional preferred dashboard path for deep links and future delivery targets.",
+          "default_delivery_mode": "Primary output mode for this user's briefing.",
+          "rendering_style": "Tone and formatting preset used by the renderer."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure profile",
+        "description": "Update stable setup information for this briefing profile.",
+        "data": {
+          "display_name": "Display name",
+          "locale": "Locale"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "A briefing profile with this user key already exists."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Profile options",
+        "description": "Adjust mutable behavior for this briefing profile.",
+        "data": {
+          "dashboard_template": "Dashboard template",
+          "dashboard_path": "Dashboard path",
+          "default_delivery_mode": "Default delivery mode",
+          "rendering_style": "Rendering style",
+          "user_key": "User key"
+        },
+        "data_description": {
+          "dashboard_template": "Dashboard template used to assemble provider fragments.",
+          "dashboard_path": "Preferred dashboard path for generated deep links.",
+          "default_delivery_mode": "Default output destination for this user.",
+          "rendering_style": "Renderer style preset.",
+          "user_key": "Shown for reference; stable profile identity is not edited here."
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "snippet": {
+      "title": "Briefing snippet",
+      "step": {
+        "user": {
+          "title": "Add snippet",
+          "description": "Choose which content provider to add to this user's briefing.",
+          "data": {
+            "provider_key": "Snippet type"
+          }
+        },
+        "provider_config": {
+          "title": "Configure snippet source",
+          "description": "Configure the source and scope for this snippet instance.",
+          "data": {
+            "source_type": "Source type",
+            "source_ref": "Source reference",
+            "summary_limit": "Summary limit"
+          }
+        },
+        "common": {
+          "title": "Snippet behavior",
+          "description": "Choose how this snippet behaves in the briefing.",
+          "data": {
+            "enabled": "Enabled",
+            "order": "Display order",
+            "priority": "Priority",
+            "title_override": "Title override"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure snippet",
+          "description": "Update the source or behavior for this snippet instance."
+        }
+      },
+      "abort": {
+        "provider_singleton": "This snippet type can only be added once for a user profile.",
+        "duplicate_source": "A snippet with the same provider and source is already configured."
+      }
+    }
+  }
+}

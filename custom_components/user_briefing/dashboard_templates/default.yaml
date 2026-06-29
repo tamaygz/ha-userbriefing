@@ -1,0 +1,8 @@
+title: User Briefing
+views:
+  - title: Overview
+    path: briefing
+    cards:
+      - type: entities
+        title: Briefing Overview
+        entities: []

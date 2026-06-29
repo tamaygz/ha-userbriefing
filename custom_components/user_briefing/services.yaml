@@ -1,0 +1,49 @@
+generate:
+  name: Generate briefing
+  description: Generate a briefing for a configured user profile and update entities.
+  fields:
+    config_entry_id:
+      name: Config entry ID
+      description: Profile config entry identifier.
+      required: true
+      selector:
+        text:
+
+preview:
+  name: Preview briefing
+  description: Generate a briefing preview and return rendered output without updating entity state.
+  fields:
+    config_entry_id:
+      name: Config entry ID
+      description: Profile config entry identifier.
+      required: true
+      selector:
+        text:
+
+deliver:
+  name: Deliver briefing
+  description: Trigger the future delivery interface for a user briefing.
+  fields:
+    config_entry_id:
+      name: Config entry ID
+      description: Profile config entry identifier.
+      required: true
+      selector:
+        text:
+
+refresh_snippet:
+  name: Refresh snippet
+  description: Refresh a single snippet instance.
+  fields:
+    config_entry_id:
+      name: Config entry ID
+      description: Profile config entry identifier.
+      required: true
+      selector:
+        text:
+    subentry_id:
+      name: Subentry ID
+      description: Snippet subentry identifier.
+      required: true
+      selector:
+        text:
