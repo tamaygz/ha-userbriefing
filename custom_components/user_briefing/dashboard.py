@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 import yaml
 
@@ -15,6 +16,7 @@ from .const import (
     CONF_DASHBOARD_TEMPLATE,
     CONF_PROVIDER_KEY,
     DEFAULT_DASHBOARD_TEMPLATE,
+    DOMAIN,
     SUBENTRY_TYPE_SNIPPET,
 )
 from .models import ALERT_SEVERITY_ORDER, AlertItem, BriefingResult, DashboardFragment
@@ -32,7 +34,7 @@ def build_dashboard_delivery_payload(
 
     template_key = _get_entry_value(entry, CONF_DASHBOARD_TEMPLATE, DEFAULT_DASHBOARD_TEMPLATE)
     fragments = _build_dashboard_fragments(hass, entry, briefing)
-    document = _build_dashboard_document(entry, briefing, fragments, template_key)
+    document = _build_dashboard_document(hass, entry, briefing, fragments, template_key)
     return {
         "template": template_key,
         "path": document["views"][0]["path"],
@@ -46,7 +48,16 @@ def _build_dashboard_fragments(
     entry: ConfigEntry,
     briefing: BriefingResult,
 ) -> list[DashboardFragment]:
-    profile_entities = _build_profile_entities(entry)
+    profile_entities = _build_profile_entities(hass, entry)
+    overview_entities = [
+        entity_id
+        for entity_id in (
+            profile_entities["briefing"],
+            profile_entities["status"],
+            profile_entities["generated_at"],
+        )
+        if entity_id is not None
+    ]
     fragments = [
         DashboardFragment(
             fragment_key="briefing_alerts",
@@ -54,20 +65,19 @@ def _build_dashboard_fragments(
             title="Briefing Alerts",
             card_type="markdown",
             layout_hint="full-width",
-        ),
-        DashboardFragment(
-            fragment_key="briefing_overview",
-            provider_key="core",
-            title="Briefing Overview",
-            card_type="entities",
-            entities=[
-                profile_entities["briefing"],
-                profile_entities["status"],
-                profile_entities["generated_at"],
-            ],
-            layout_hint="full-width",
-        ),
+        )
     ]
+    if overview_entities:
+        fragments.append(
+            DashboardFragment(
+                fragment_key="briefing_overview",
+                provider_key="core",
+                title="Briefing Overview",
+                card_type="entities",
+                entities=overview_entities,
+                layout_hint="full-width",
+            )
+        )
 
     subentries_by_id = {
         str(getattr(subentry, "subentry_id", "")): subentry
@@ -76,35 +86,38 @@ def _build_dashboard_fragments(
 
     for snippet in briefing.snippets:
         subentry = subentries_by_id.get(snippet.instance_id)
-        snippet_title = getattr(subentry, "title", snippet.title)
-        snippet_entities = _build_snippet_entities(entry, snippet_title)
+        snippet_entities = _build_snippet_entities(hass, entry, snippet.instance_id)
+        text_entity_id = snippet_entities["text"]
+        status_entity_id = snippet_entities["status"]
 
         provider_fragments = []
-        if subentry is not None:
+        if subentry is not None and text_entity_id is not None:
             provider_config = get_config_subentry_data(subentry)
             provider_key = provider_config.get(CONF_PROVIDER_KEY)
             if isinstance(provider_key, str):
                 try:
                     provider_fragments = create_provider(
                         hass, provider_key
-                    ).build_dashboard_fragments(snippet_entities["text"])
+                    ).build_dashboard_fragments(text_entity_id)
                 except KeyError:
                     provider_fragments = []
-        if not provider_fragments:
+        if not provider_fragments and text_entity_id is not None:
             provider_fragments = [
                 DashboardFragment(
                     fragment_key=f"{snippet.provider_key}_{snippet.instance_id}",
                     provider_key=snippet.provider_key,
                     title=snippet.title,
                     card_type="entities",
-                    entities=[snippet_entities["text"]],
+                    entities=[text_entity_id],
                 )
             ]
 
         for fragment in provider_fragments:
-            entities = list(fragment.entities)
-            if snippet_entities["status"] not in entities:
-                entities.append(snippet_entities["status"])
+            entities = [entity_id for entity_id in fragment.entities if entity_id is not None]
+            if status_entity_id is not None and status_entity_id not in entities:
+                entities.append(status_entity_id)
+            if not entities:
+                continue
             fragments.append(
                 DashboardFragment(
                     fragment_key=fragment.fragment_key,
@@ -122,6 +135,7 @@ def _build_dashboard_fragments(
 
 
 def _build_dashboard_document(
+    hass: HomeAssistant,
     entry: ConfigEntry,
     briefing: BriefingResult,
     fragments: list[DashboardFragment],
@@ -129,7 +143,15 @@ def _build_dashboard_document(
 ) -> dict[str, Any]:
     cards = []
     alerts = _collect_alerts(briefing)
-    profile_entities = _build_profile_entities(entry)
+    profile_entities = _build_profile_entities(hass, entry)
+    compact_status_entities = [
+        entity_id
+        for entity_id in (
+            profile_entities["status"],
+            profile_entities["generated_at"],
+        )
+        if entity_id is not None
+    ]
 
     for fragment in fragments:
         if fragment.fragment_key == "briefing_alerts":
@@ -147,10 +169,7 @@ def _build_dashboard_document(
                     {
                         "type": "entities",
                         "title": "Briefing Status",
-                        "entities": [
-                            profile_entities["status"],
-                            profile_entities["generated_at"],
-                        ],
+                        "entities": compact_status_entities,
                     },
                 ]
             )
@@ -215,23 +234,34 @@ def _collect_alerts(briefing: BriefingResult) -> list[AlertItem]:
     )
 
 
-def _build_profile_entities(entry: ConfigEntry) -> dict[str, str]:
+def _build_profile_entities(
+    hass: HomeAssistant | None,
+    entry: ConfigEntry,
+) -> dict[str, str | None]:
     return {
-        "briefing": _sensor_entity_id(f"{entry.title} Briefing"),
-        "status": _sensor_entity_id(f"{entry.title} Briefing Status"),
-        "generated_at": _sensor_entity_id(f"{entry.title} Briefing Last Generated"),
+        "briefing": _sensor_entity_id(hass, f"{entry.entry_id}_summary"),
+        "status": _sensor_entity_id(hass, f"{entry.entry_id}_status"),
+        "generated_at": _sensor_entity_id(hass, f"{entry.entry_id}_generated_at"),
     }
 
 
-def _build_snippet_entities(entry: ConfigEntry, snippet_title: str) -> dict[str, str]:
+def _build_snippet_entities(
+    hass: HomeAssistant | None,
+    entry: ConfigEntry,
+    snippet_id: str,
+) -> dict[str, str | None]:
     return {
-        "text": _sensor_entity_id(f"{entry.title} {snippet_title}"),
-        "status": _sensor_entity_id(f"{entry.title} {snippet_title} Status"),
+        "text": _sensor_entity_id(hass, f"{entry.entry_id}_{snippet_id}"),
+        "status": _sensor_entity_id(hass, f"{entry.entry_id}_{snippet_id}_status"),
     }
 
 
-def _sensor_entity_id(name: str) -> str:
-    return f"sensor.{slugify(name)}"
+def _sensor_entity_id(hass: HomeAssistant | None, unique_id: str) -> str | None:
+    if hass is None:
+        return None
+
+    entity_registry = er.async_get(hass)
+    return entity_registry.async_get_entity_id("sensor", DOMAIN, unique_id)
 
 
 def _resolve_dashboard_path(entry: ConfigEntry) -> str:

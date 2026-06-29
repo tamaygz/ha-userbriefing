@@ -5,8 +5,13 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from unittest.mock import patch
 
-from custom_components.user_briefing.const import DEFAULT_DASHBOARD_TEMPLATE, SUBENTRY_TYPE_SNIPPET
+from custom_components.user_briefing.const import (
+    DEFAULT_DASHBOARD_TEMPLATE,
+    DOMAIN,
+    SUBENTRY_TYPE_SNIPPET,
+)
 from custom_components.user_briefing.coordinator import UserBriefingCoordinator
 from custom_components.user_briefing.dashboard import build_dashboard_delivery_payload
 from custom_components.user_briefing.models import AlertItem, BriefingResult, SnippetResult
@@ -26,8 +31,29 @@ def _subentry(
     )
 
 
+class _FakeEntityRegistry:
+    def __init__(self, entity_ids: dict[tuple[str, str, str], str]) -> None:
+        self._entity_ids = entity_ids
+
+    def async_get_entity_id(self, domain: str, platform: str, unique_id: str) -> str | None:
+        return self._entity_ids.get((domain, platform, unique_id))
+
+
+def _entity_registry_for_entry(entry_id: str) -> _FakeEntityRegistry:
+    return _FakeEntityRegistry(
+        {
+            ("sensor", DOMAIN, f"{entry_id}_summary"): "sensor.saved_briefing_summary",
+            ("sensor", DOMAIN, f"{entry_id}_status"): "sensor.saved_briefing_status",
+            ("sensor", DOMAIN, f"{entry_id}_generated_at"): "sensor.saved_briefing_generated_at",
+            ("sensor", DOMAIN, f"{entry_id}_snippet-1"): "sensor.saved_calendar_text",
+            ("sensor", DOMAIN, f"{entry_id}_snippet-1_status"): "sensor.saved_calendar_status",
+        }
+    )
+
+
 def test_build_dashboard_delivery_payload_puts_alerts_first() -> None:
     entry = SimpleNamespace(
+        entry_id="entry-1",
         title="Alex",
         data={},
         options={"dashboard_template": DEFAULT_DASHBOARD_TEMPLATE, "dashboard_path": "/alex-briefing/"},
@@ -60,7 +86,11 @@ def test_build_dashboard_delivery_payload_puts_alerts_first() -> None:
         ],
     )
 
-    payload = build_dashboard_delivery_payload(SimpleNamespace(), entry, result)
+    with patch(
+        "custom_components.user_briefing.dashboard.er.async_get",
+        return_value=_entity_registry_for_entry(entry.entry_id),
+    ):
+        payload = build_dashboard_delivery_payload(SimpleNamespace(), entry, result)
 
     assert payload["template"] == "default"
     assert payload["path"] == "alex-briefing"
@@ -70,8 +100,8 @@ def test_build_dashboard_delivery_payload_puts_alerts_first() -> None:
     assert "title: Calendar Summary" in yaml_output
     assert yaml_output.index("title: Briefing Alerts") < yaml_output.index("title: Briefing Overview")
     assert yaml_output.index("title: Briefing Overview") < yaml_output.index("title: Calendar Summary")
-    assert "sensor.alex_calendar" in yaml_output
-    assert "sensor.alex_calendar_status" in yaml_output
+    assert "sensor.saved_calendar_text" in yaml_output
+    assert "sensor.saved_calendar_status" in yaml_output
     assert "Standup starts at 09:00." in yaml_output
 
 
@@ -84,12 +114,17 @@ def test_coordinator_preview_builds_end_to_end_dashboard_payload() -> None:
         subentries={"snippet-1": _subentry("snippet-1", "Compliment", "compliment")},
     )
 
-    result = asyncio.run(
-        UserBriefingCoordinator(SimpleNamespace(), entry).async_preview()
-    )
+    with patch(
+        "custom_components.user_briefing.dashboard.er.async_get",
+        return_value=_entity_registry_for_entry(entry.entry_id),
+    ):
+        result = asyncio.run(
+            UserBriefingCoordinator(SimpleNamespace(), entry).async_preview()
+        )
 
     dashboard_payload = result.delivery_payloads["dashboard"]
     assert dashboard_payload["template"] == "compact"
     assert "title: Briefing Alerts" in dashboard_payload["yaml"]
     assert "title: Briefing Summary" in dashboard_payload["yaml"]
     assert "title: Compliment" in dashboard_payload["yaml"]
+    assert "sensor.saved_briefing_status" in dashboard_payload["yaml"]
