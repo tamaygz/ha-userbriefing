@@ -115,6 +115,10 @@ Read in this order:
   - Notes comparing this project to the author's other Home Assistant integrations.
   - Use it to stay consistent in packaging, README shape, and Home Assistant conventions.
 
+- `specs/automation-push-provider.md`
+  - Spec for the `custom_text` provider, `push_snippet`/`clear_snippet` services, and bundled automation blueprints.
+  - Use it before working on automation-driven content injection, the push service, or bundled blueprint design.
+
 ## Research
 
 - `research/meaningful-additions-to-review.md`
