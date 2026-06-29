@@ -23,6 +23,7 @@
 - REQ-019: Use current options-flow patterns by relying on `self.config_entry`, avoiding `OptionsFlowWithConfigEntry` in new code, and using reload-aware flows where appropriate.
 - REQ-020: Allow providers to emit structured alerts in addition to their standard informational content.
 - REQ-021: Ensure promoted alerts are rendered at the top of the briefing to gain user attention while preserving the underlying source context.
+- REQ-022: Make consuming existing Home Assistant and HACS integrations the primary data path. Providers should read existing entities and services through reusable adapter primitives so adding a new source needs minimal code.
 
 ## Phases
 
@@ -47,6 +48,8 @@
 - [ ] TASK-019: Define and implement a shared alert contract so providers can emit structured alerts independently of their normal snippet text.
 - [ ] TASK-020: Implement alert promotion, severity ordering, and alert-aware rendering in the coordinator and renderer.
 - [ ] TASK-021: Add dashboard fragments or cards for promoted alerts so alert state is visible before normal informational snippets.
+- [x] TASK-022: Provide reusable adapter primitives (`HomeAssistantEntityAdapter`, `HomeAssistantServiceAdapter`) and a provider `get_adapter()` seam so existing integrations can be consumed with minimal provider code.
+- [ ] TASK-023: Add adapter recipes/wiring for the first real providers (calendar via `calendar.get_events`, weather via `weather.get_forecasts`, task summary via `todo.get_items`) and document the pattern for contributors.
 
 ## Alternatives
 
@@ -129,6 +132,7 @@
 - TEST-018: Validate dynamic snippet entity creation and teardown when subentries change.
 - TEST-019: Validate providers can emit alerts without losing their normal snippet content.
 - TEST-020: Validate promoted alerts sort ahead of regular briefing content by severity and source order rules.
+- TEST-021: Validate adapter primitives read entity state/attributes and service responses, and degrade gracefully when sources are missing.
 
 ## Risks
 

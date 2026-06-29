@@ -12,6 +12,7 @@ The User Briefing integration should be modular by construction, not by conventi
 - Rendering owns wording, never upstream data fetching.
 - Delivery owns output channels, never provider internals.
 - Alert promotion rules belong to the core, while alert detection belongs to providers.
+- Existing Home Assistant integrations (core and HACS) are the primary data source. Providers should consume entities and services through adapters before reaching for external APIs.
 
 ## Layered Model
 
@@ -37,6 +38,7 @@ Suggested module responsibilities:
   - registration, lookup, capability metadata, API version checks
 - `adapters/*.py`
   - normalized access to upstream integrations and Home Assistant building blocks
+  - ships reusable primitives (`HomeAssistantEntityAdapter`, `HomeAssistantServiceAdapter`) so most existing integrations can be consumed without bespoke code
 - `rendering.py`
   - phrase selection and interpolation
 - `coordinator.py`
@@ -77,6 +79,28 @@ Suggested lifecycle:
 7. provider builds phrase context
 8. renderer builds the final snippet text
 9. composer assembles snippet results into final briefing and promotes alerts
+
+## Consuming existing Home Assistant integrations
+
+Most features a user wants in a briefing already exist as Home Assistant integrations, many installed through HACS. The architecture treats that as the default data path, not an edge case.
+
+Two reusable adapter primitives cover the majority of cases:
+
+- `HomeAssistantEntityAdapter`
+  - reads the current state and attributes of any entity, regardless of which integration provides it
+  - the easiest way to consume an existing integration: point it at an `entity_id`
+- `HomeAssistantServiceAdapter`
+  - calls any service, optionally with a response, for integrations that expose richer data through service responses
+  - examples: `calendar.get_events`, `weather.get_forecasts`, `todo.get_items`
+
+Guidelines:
+
+- prefer entity selectors in provider config so users pick an existing entity from any integration
+- prefer service-response adapters when an integration exposes structured data beyond a single state
+- a provider should usually only implement `get_adapter()` plus `normalize()`; the default `async_collect()` delegates to the adapter
+- only fall back to a custom adapter with direct HTTP or library access when no existing integration exposes the data
+
+This keeps the user-facing snippet type stable while letting the underlying integration or adapter change freely.
 
 ## Snippet typing strategy
 

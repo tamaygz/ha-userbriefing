@@ -1,7 +1,12 @@
-"""Task and todo adapter scaffold."""
+"""Task and to-do adapter.
 
-from .base import StubAdapter
+Consumes existing Home Assistant task ecosystems (Local to-do, Todoist,
+Microsoft To Do, and others) through the shared ``todo`` building block via the
+``todo.get_items`` service response.
+"""
+
+from .base import HomeAssistantServiceAdapter
 
 
-class TodoAdapter(StubAdapter):
-    """Adapter for Home Assistant task-backed sources."""
+class TodoAdapter(HomeAssistantServiceAdapter):
+    """Adapter for Home Assistant task-backed sources (``todo.get_items``)."""

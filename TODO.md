@@ -12,6 +12,7 @@
 - [x] Scaffold tests for config flow, registry, rendering, and provider contract basics.
 - [x] Run focused validation on the scaffold structure and capture any follow-up gaps.
 - [x] Update todo status and summarize completed work.
+- [x] Add reusable adapter primitives (`HomeAssistantEntityAdapter`, `HomeAssistantServiceAdapter`) and a provider `get_adapter()` seam so existing Home Assistant/HACS integrations are easy to consume as data sources (TASK-022).
 
 ## Follow-up Work
 

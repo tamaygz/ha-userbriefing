@@ -62,6 +62,10 @@ class StubBriefingProvider(BriefingProvider):
         return self.build_config_schema()
 
     async def async_collect(self, config: dict[str, Any]) -> dict[str, Any]:
+        adapter = self.get_adapter()
+        if adapter is not None:
+            return await adapter.async_fetch(dict(config))
+
         return {
             "source_type": config.get("source_type"),
             "source_ref": config.get("source_ref"),

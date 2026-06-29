@@ -13,7 +13,7 @@ Core design choices:
 - one config entry per user profile
 - one config subentry per configured briefing snippet
 - provider-registry architecture for content modules
-- adapter layer for upstream integrations and data sources
+- adapter layer for consuming existing Home Assistant and HACS integrations as data sources
 - dashboard-first entity exposure
 - notification logic intentionally stubbed for later
 - providers may emit structured alerts that are promoted to the top of the briefing
@@ -147,7 +147,7 @@ All integration code lives under `custom_components/user_briefing/`.
 - `const.py`
   - Shared constants and service names.
 - `models.py`
-  - Dataclasses for profile, provider metadata, snippets, briefing results, and dashboard fragments.
+  - Dataclasses for profile, provider metadata, snippets, alerts, briefing results, and dashboard fragments.
 - `config_flow.py`
   - Main config flow, options flow, reconfigure flow, and subentry flow.
 - `coordinator.py`
@@ -203,15 +203,15 @@ Provider code lives under `custom_components/user_briefing/providers/`.
 Adapter code lives under `custom_components/user_briefing/adapters/`.
 
 - `base.py`
-  - Base stub adapter.
+  - Reusable adapter primitives: `HomeAssistantEntityAdapter` (read any entity), `HomeAssistantServiceAdapter` (call any service incl. response), and `StubAdapter`. This is how providers consume existing integrations.
 - `calendar.py`
-  - Calendar adapter scaffold.
+  - Calendar adapter using `calendar.get_events`.
 - `todo.py`
-  - Task/todo adapter scaffold.
+  - Task/to-do adapter using `todo.get_items` across any to-do backend.
 - `weather.py`
-  - Weather adapter scaffold.
+  - Weather adapter using `weather.get_forecasts`.
 - `catalunya_beaches.py`
-  - Catalunya Beaches adapter scaffold.
+  - Catalunya Beaches adapter reading the integration's entities.
 - `__init__.py`
   - Adapter package marker.
 
@@ -250,7 +250,7 @@ Adapter code lives under `custom_components/user_briefing/adapters/`.
    - `OptionsFlow` using `self.config_entry`
    - subentry-based snippet setup
 5. Do not turn notification logic into a full delivery system yet unless the task explicitly asks for that.
-6. Reuse existing Home Assistant ecosystems for tasks and other data sources; do not rebuild upstream integrations inside this project.
+6. Reuse existing Home Assistant ecosystems for tasks and other data sources; do not rebuild upstream integrations inside this project. Consume them through adapters: prefer `HomeAssistantEntityAdapter` or `HomeAssistantServiceAdapter`, and only write a custom adapter when no existing integration exposes the data.
 7. Keep progress tracking in sync in both places:
   - update `TODO.md` when significant implementation milestones are completed or when task wording/scope changes
   - update the corresponding GitHub issue when work progresses, scope changes, blockers are found, or the task is completed
@@ -280,9 +280,10 @@ Preferred GitHub issue update content:
 
 These areas are scaffolded but not fully implemented yet:
 
-- real provider collection logic
+- real provider collection and normalization logic (adapter primitives exist; providers still return stub content)
+- alert promotion and ordering in the composer (the `AlertItem` model exists; promotion is not wired)
 - rich phrase-bank rendering
-- full subentry-driven entity creation beyond the current scaffold
+- full subentry-driven entity lifecycle beyond the initial scaffold
 - dashboard fragment composition into finished user dashboards
 - notification payload helpers and delivery routing
 - complete Home Assistant behavior tests

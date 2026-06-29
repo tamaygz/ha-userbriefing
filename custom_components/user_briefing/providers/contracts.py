@@ -12,11 +12,29 @@ from ..models import DashboardFragment, ProviderMetadata, SnippetResult
 
 
 class ProviderAdapter(ABC):
-    """Base adapter for upstream data sources."""
+    """Base adapter for upstream data sources.
+
+    Adapters are the seam that lets providers consume existing Home Assistant
+    integrations (core or HACS) without the provider, composer, or rendering
+    layers knowing transport details. Most adapters should read from existing
+    integration entities or services rather than talking to external APIs
+    directly.
+    """
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
 
     @abstractmethod
     async def async_fetch(self, context: dict[str, Any]) -> dict[str, Any]:
         """Fetch raw data from the source."""
+
+    async def async_describe_source(self, source_ref: str) -> dict[str, Any]:
+        """Return lightweight metadata about a configured source.
+
+        Used for validation and UX hints. Override when an adapter can cheaply
+        confirm a source exists or surface a friendly name.
+        """
+        return {"source_ref": source_ref}
 
 
 class BriefingProvider(ABC):
@@ -57,6 +75,16 @@ class BriefingProvider(ABC):
     @abstractmethod
     async def async_collect(self, config: dict[str, Any]) -> dict[str, Any]:
         """Collect raw provider payload."""
+
+    def get_adapter(self) -> ProviderAdapter | None:
+        """Return the source adapter this provider reads from, if any.
+
+        Returning an adapter is the recommended way to consume existing Home
+        Assistant integrations: the default ``async_collect`` will delegate to
+        the adapter so a provider only has to normalize the result. Providers
+        that derive data without an upstream source can return ``None``.
+        """
+        return None
 
     @abstractmethod
     def normalize(self, payload: dict[str, Any], instance_id: str) -> SnippetResult:

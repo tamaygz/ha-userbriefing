@@ -1,7 +1,11 @@
-"""Catalunya Beaches adapter scaffold."""
+"""Catalunya Beaches adapter.
 
-from .base import StubAdapter
+Consumes the existing ``ha-catalunya-beaches`` HACS integration by reading its
+beach entities' state and attributes.
+"""
+
+from .base import HomeAssistantEntityAdapter
 
 
-class CatalunyaBeachesAdapter(StubAdapter):
-    """Adapter for Catalunya Beaches backed snippets."""
+class CatalunyaBeachesAdapter(HomeAssistantEntityAdapter):
+    """Adapter for Catalunya Beaches backed snippets (entity state)."""

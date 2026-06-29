@@ -254,14 +254,18 @@ The core should own alert ordering and presentation rules so alert behavior stay
 
 ### Adapter contract
 
-Providers should not talk directly to arbitrary upstream integrations when a reusable adapter boundary is possible.
+Providers should not talk directly to arbitrary upstream integrations when a reusable adapter boundary is possible. Existing Home Assistant integrations (core and HACS) are the primary data source, and the integration ships reusable adapter primitives so consuming them is easy:
 
-Examples:
+- `HomeAssistantEntityAdapter` reads state and attributes from any entity, regardless of which integration owns it
+- `HomeAssistantServiceAdapter` calls any service (optionally with response) for richer data such as `calendar.get_events`, `weather.get_forecasts`, or `todo.get_items`
 
-- a calendar provider can use a Home Assistant calendar adapter
-- a beach provider can use a Catalunya Beaches adapter
-- a task-summary provider can use any Home Assistant to-do or task-backed entity adapter
-- a mail-summary provider can use a stub adapter now and Gmail or IMAP adapters later
+Providers declare their source via `get_adapter()`, and the default `async_collect()` delegates to that adapter. Examples:
+
+- a calendar provider uses a service adapter over `calendar.get_events`
+- a weather provider uses a service adapter over `weather.get_forecasts`
+- a task-summary provider uses a service adapter over `todo.get_items` across any to-do backend
+- a beach provider uses an entity adapter over the Catalunya Beaches integration's entities
+- a mail-summary provider uses a stub adapter now and Gmail or IMAP adapters later
 
 This makes it possible to swap data sources while preserving the user-facing snippet type.
 

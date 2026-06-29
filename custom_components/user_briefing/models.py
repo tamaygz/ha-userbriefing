@@ -34,6 +34,7 @@ class ProviderMetadata:
     supports_actions: bool = False
     supports_deep_link: bool = False
     supports_dashboard_card: bool = True
+    supports_alerts: bool = False
     supports_phrase_overrides: bool = False
     default_order_group: str = "general"
     dependencies: tuple[str, ...] = ()
@@ -63,6 +64,29 @@ class SnippetAction:
     payload: dict[str, Any] = field(default_factory=dict)
 
 
+# Alert severities, ordered from most to least urgent for promotion sorting.
+ALERT_SEVERITY_ORDER: tuple[str, ...] = ("critical", "warning", "info")
+
+
+@dataclass(slots=True)
+class AlertItem:
+    """A structured attention item emitted by a provider.
+
+    Alerts are distinct from a snippet's normal body text. The core composer is
+    responsible for promoting alerts to the top of the briefing and ordering them
+    by ``severity`` (see ``ALERT_SEVERITY_ORDER``).
+    """
+
+    alert_key: str
+    provider_key: str
+    severity: str
+    title: str
+    text: str
+    source_label: str | None = None
+    navigation_path: str | None = None
+    meta: dict[str, Any] = field(default_factory=dict)
+
+
 @dataclass(slots=True)
 class SnippetResult:
     """Normalized snippet output."""
@@ -77,6 +101,7 @@ class SnippetResult:
     data: dict[str, Any] = field(default_factory=dict)
     meta: dict[str, Any] = field(default_factory=dict)
     actions: list[SnippetAction] = field(default_factory=list)
+    alerts: list[AlertItem] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -87,5 +112,6 @@ class BriefingResult:
     generated_at: datetime
     summary_state: str
     snippets: list[SnippetResult] = field(default_factory=list)
+    alerts: list[AlertItem] = field(default_factory=list)
     rendered_text: str = ""
     delivery_payloads: dict[str, Any] = field(default_factory=dict)

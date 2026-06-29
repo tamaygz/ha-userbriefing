@@ -43,22 +43,37 @@ Suggested provider methods:
 
 - `describe() -> ProviderMetadata`
 - `build_config_schema() -> vol.Schema | selector-based schema`
+- `build_reconfigure_schema(existing_data, existing_options) -> vol.Schema`
 - `build_options_schema() -> vol.Schema | None`
 - `validate_config(config) -> dict`
-- `collect(context) -> RawProviderPayload`
-- `normalize(payload) -> SnippetResult`
+- `validate_reconfigure_config(config) -> dict`
+- `get_adapter() -> ProviderAdapter | None`
+- `async_collect(config) -> RawProviderPayload`
+- `normalize(payload, instance_id) -> SnippetResult`
 - `build_phrase_context(result) -> dict`
-- `build_dashboard_fragments(context) -> list[DashboardFragment]`
+- `get_instance_title(config) -> str`
+- `get_instance_unique_key(config) -> str | None`
+- `build_dashboard_fragments(entity_id_prefix) -> list[DashboardFragment]`
+
+Scenario selection currently happens inside `normalize()`; it may move to a dedicated `choose_scenario()` step when real phrase banks land.
 
 ## Adapter contract
 
-Suggested adapter methods:
+Adapters consume existing Home Assistant integrations and normalize their output for providers.
 
-- `validate_source(source_ref) -> None | raises`
-- `fetch(context) -> RawAdapterPayload`
-- `describe_source(source_ref) -> dict`
+Base interface (`ProviderAdapter`):
 
-Adapters should be narrow and source-specific.
+- `__init__(hass)`
+- `async_fetch(context) -> dict` (required)
+- `async_describe_source(source_ref) -> dict` (optional, for validation and UX hints)
+
+Reusable primitives shipped with the integration:
+
+- `HomeAssistantEntityAdapter` reads `state` and `attributes` for any `entity_id` passed as `context["source_ref"]`
+- `HomeAssistantServiceAdapter` calls a service using `context["service_domain"]`, `context["service_name"]`, optional `service_data` and `target`, returning the service response
+- `StubAdapter` returns an empty payload for sources that are not wired yet
+
+Providers connect to an adapter via `get_adapter()`; the default `async_collect()` delegates to it. Adapters should stay narrow and source-specific, and prefer existing integration entities or services over direct external access.
 
 ## Result contract
 
