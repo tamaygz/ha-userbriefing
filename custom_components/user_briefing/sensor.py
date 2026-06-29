@@ -63,13 +63,12 @@ class UserBriefingSnippetEntityManager:
         self._entry = entry
         await self.async_sync_entities()
 
-    async def async_sync_entities(self) -> None:
-        """Add, update, and remove snippet entities for current subentries."""
-        subentries = {
-            subentry_id: subentry
-            for subentry in iter_config_subentries(self._entry, SUBENTRY_TYPE_SNIPPET)
-            if (subentry_id := getattr(subentry, "subentry_id", None)) is not None
-        }
+        subentries: dict[str, object] = {}
+        for subentry in iter_config_subentries(self._entry, SUBENTRY_TYPE_SNIPPET):
+            raw_id = getattr(subentry, "subentry_id", None)
+            if raw_id is None:
+                continue
+            subentries[str(raw_id)] = subentry
 
         removed_ids = set(self._entities) - set(subentries)
         for subentry_id in removed_ids:
