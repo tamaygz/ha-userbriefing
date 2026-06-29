@@ -18,6 +18,7 @@ class TaskSummaryProvider(StubBriefingProvider):
                 vol.Required("source_type", default="todo_entity"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=["todo_entity"],
+                        translation_key="provider_source_type",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),

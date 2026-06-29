@@ -18,6 +18,7 @@ class CalendarProvider(StubBriefingProvider):
                 vol.Required("source_type", default="calendar_entity"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=["calendar_entity"],
+                        translation_key="provider_source_type",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),

@@ -1,5 +1,51 @@
 {
   "title": "User Briefing",
+  "selector": {
+    "locale": {
+      "options": {
+        "en": "English",
+        "ca": "Català",
+        "es": "Español"
+      }
+    },
+    "dashboard_template": {
+      "options": {
+        "default": "Default",
+        "compact": "Compact",
+        "expanded": "Expanded"
+      }
+    },
+    "delivery_mode": {
+      "options": {
+        "dashboard": "Dashboard",
+        "notification_stub": "Notification stub",
+        "voice_future": "Voice (future)"
+      }
+    },
+    "rendering_style": {
+      "options": {
+        "friendly": "Friendly",
+        "concise": "Concise",
+        "cheerful": "Cheerful"
+      }
+    },
+    "snippet_priority": {
+      "options": {
+        "required": "Required",
+        "optional": "Optional"
+      }
+    },
+    "provider_source_type": {
+      "options": {
+        "entity": "Entity",
+        "service": "Service",
+        "integration": "Integration",
+        "calendar_entity": "Calendar entity",
+        "weather_entity": "Weather entity",
+        "todo_entity": "To-do entity"
+      }
+    }
+  },
   "config": {
     "flow_title": "{name}",
     "step": {
@@ -76,6 +122,52 @@
           "default_delivery_mode": "Default output destination for this user.",
           "rendering_style": "Renderer style preset.",
           "user_key": "Shown for reference; stable profile identity is not edited here."
+        }
+      }
+    }
+  },
+  "services": {
+    "generate": {
+      "name": "Generate briefing",
+      "description": "Generate a briefing for the selected profile and update entity state.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "The profile config entry to generate a briefing for."
+        }
+      }
+    },
+    "preview": {
+      "name": "Preview briefing",
+      "description": "Generate a preview and return rendered output without updating entity state.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "The profile config entry to preview."
+        }
+      }
+    },
+    "deliver": {
+      "name": "Deliver briefing",
+      "description": "Trigger the future delivery interface for a selected profile.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "The profile config entry to deliver from."
+        }
+      }
+    },
+    "refresh_snippet": {
+      "name": "Refresh snippet",
+      "description": "Regenerate a single configured snippet instance.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "The parent profile config entry."
+        },
+        "subentry_id": {
+          "name": "Subentry ID",
+          "description": "The configured snippet subentry to refresh."
         }
       }
     }

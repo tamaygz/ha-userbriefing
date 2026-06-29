@@ -40,6 +40,7 @@ class StubBriefingProvider(BriefingProvider):
                 vol.Required("source_type", default="entity"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=["entity", "service", "integration"],
+                        translation_key="provider_source_type",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),

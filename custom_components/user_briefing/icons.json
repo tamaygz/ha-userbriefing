@@ -1,0 +1,26 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "sections": {
+          "identity": "mdi:account",
+          "presentation": "mdi:format-text-variant"
+        }
+      }
+    }
+  },
+  "services": {
+    "generate": {
+      "service": "mdi:play-circle-outline"
+    },
+    "preview": {
+      "service": "mdi:text-box-search-outline"
+    },
+    "deliver": {
+      "service": "mdi:send-outline"
+    },
+    "refresh_snippet": {
+      "service": "mdi:refresh"
+    }
+  }
+}

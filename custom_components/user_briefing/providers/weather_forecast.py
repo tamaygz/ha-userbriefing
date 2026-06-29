@@ -18,6 +18,7 @@ class WeatherForecastProvider(StubBriefingProvider):
                 vol.Required("source_type", default="weather_entity"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=["weather_entity"],
+                        translation_key="provider_source_type",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),

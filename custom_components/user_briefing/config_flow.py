@@ -134,6 +134,7 @@ class UserBriefingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 vol.Required(CONF_LOCALE, default=DEFAULT_LOCALE): selector.SelectSelector(
                                     selector.SelectSelectorConfig(
                                         options=["en", "ca", "es"],
+                                        translation_key="locale",
                                         mode=selector.SelectSelectorMode.DROPDOWN,
                                     )
                                 )
@@ -174,6 +175,7 @@ class UserBriefingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=["default", "compact", "expanded"],
+                            translation_key="dashboard_template",
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         )
                     ),
@@ -184,6 +186,7 @@ class UserBriefingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=["dashboard", "notification_stub", "voice_future"],
+                            translation_key="delivery_mode",
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         )
                     ),
@@ -193,6 +196,7 @@ class UserBriefingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=["friendly", "concise", "cheerful"],
+                            translation_key="rendering_style",
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         )
                     ),
@@ -238,6 +242,7 @@ class UserBriefingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         vol.Required(CONF_LOCALE): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 options=["en", "ca", "es"],
+                                translation_key="locale",
                                 mode=selector.SelectSelectorMode.DROPDOWN,
                             )
                         ),
@@ -272,6 +277,7 @@ class UserBriefingOptionsFlow(OptionsFlowWithReload):
                         ): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 options=["default", "compact", "expanded"],
+                                translation_key="dashboard_template",
                                 mode=selector.SelectSelectorMode.DROPDOWN,
                             )
                         ),
@@ -282,6 +288,7 @@ class UserBriefingOptionsFlow(OptionsFlowWithReload):
                         ): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 options=["dashboard", "notification_stub", "voice_future"],
+                                translation_key="delivery_mode",
                                 mode=selector.SelectSelectorMode.DROPDOWN,
                             )
                         ),
@@ -291,6 +298,7 @@ class UserBriefingOptionsFlow(OptionsFlowWithReload):
                         ): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 options=["friendly", "concise", "cheerful"],
+                                translation_key="rendering_style",
                                 mode=selector.SelectSelectorMode.DROPDOWN,
                             )
                         ),
@@ -360,6 +368,7 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
                 vol.Required(CONF_PRIORITY, default=DEFAULT_PRIORITY): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=["required", "optional"],
+                        translation_key="snippet_priority",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),

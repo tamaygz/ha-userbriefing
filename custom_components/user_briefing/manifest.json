@@ -11,7 +11,7 @@
   "issue_tracker": "https://github.com/tamaygz/ha-userbriefing/issues",
   "version": "0.1.0",
   "requirements": [],
-  "dependencies": [
+  "after_dependencies": [
     "calendar",
     "notify",
     "todo",
