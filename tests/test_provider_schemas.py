@@ -23,24 +23,36 @@ def test_service_backed_providers_hide_fixed_source_type() -> None:
     weather = WeatherForecastProvider(SimpleNamespace())
     tasks = TaskSummaryProvider(SimpleNamespace())
 
-    assert set(calendar.build_config_schema().schema) == {"source_ref", "summary_limit"}
-    assert isinstance(calendar.build_config_schema().schema["source_ref"], selector.EntitySelector)
+    calendar_schema = calendar.build_config_schema().schema
+    assert {getattr(key, "schema", key) for key in calendar_schema} == {"source_ref", "summary_limit"}
+    assert isinstance(
+        next(value for key, value in calendar_schema.items() if getattr(key, "schema", key) == "source_ref"),
+        selector.EntitySelector,
+    )
     assert calendar.validate_config({"source_ref": "calendar.work", "summary_limit": 4}) == {
         "source_ref": "calendar.work",
         "summary_limit": 4,
         "source_type": "calendar_entity",
     }
 
-    assert set(weather.build_config_schema().schema) == {"source_ref", "summary_limit"}
-    assert isinstance(weather.build_config_schema().schema["source_ref"], selector.EntitySelector)
+    weather_schema = weather.build_config_schema().schema
+    assert {getattr(key, "schema", key) for key in weather_schema} == {"source_ref", "summary_limit"}
+    assert isinstance(
+        next(value for key, value in weather_schema.items() if getattr(key, "schema", key) == "source_ref"),
+        selector.EntitySelector,
+    )
     assert weather.validate_config({"source_ref": "weather.home", "summary_limit": 2}) == {
         "source_ref": "weather.home",
         "summary_limit": 2,
         "source_type": "weather_entity",
     }
 
-    assert set(tasks.build_config_schema().schema) == {"source_ref", "summary_limit"}
-    assert isinstance(tasks.build_config_schema().schema["source_ref"], selector.EntitySelector)
+    tasks_schema = tasks.build_config_schema().schema
+    assert {getattr(key, "schema", key) for key in tasks_schema} == {"source_ref", "summary_limit"}
+    assert isinstance(
+        next(value for key, value in tasks_schema.items() if getattr(key, "schema", key) == "source_ref"),
+        selector.EntitySelector,
+    )
     assert tasks.validate_config({"source_ref": "todo.home", "summary_limit": 6}) == {
         "source_ref": "todo.home",
         "summary_limit": 6,
