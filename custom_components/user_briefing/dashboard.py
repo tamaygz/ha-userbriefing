@@ -84,10 +84,12 @@ def _build_dashboard_fragments(
             provider_config = get_config_subentry_data(subentry)
             provider_key = provider_config.get(CONF_PROVIDER_KEY)
             if isinstance(provider_key, str):
-                provider_fragments = create_provider(hass, provider_key).build_dashboard_fragments(
-                    snippet_entities["text"]
-                )
-
+                try:
+                    provider_fragments = create_provider(
+                        hass, provider_key
+                    ).build_dashboard_fragments(snippet_entities["text"])
+                except KeyError:
+                    provider_fragments = []
         if not provider_fragments:
             provider_fragments = [
                 DashboardFragment(
