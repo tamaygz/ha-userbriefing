@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import inspect
+from collections.abc import Iterable
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -20,13 +23,97 @@ async def async_setup_entry(
 ) -> None:
     """Set up User Briefing sensors for a config entry."""
     coordinator: UserBriefingCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[SensorEntity] = [
-        UserBriefingSummarySensor(coordinator, entry),
-        UserBriefingStatusSensor(coordinator, entry),
-    ]
-    for subentry in iter_config_subentries(entry, SUBENTRY_TYPE_SNIPPET):
-        entities.append(UserBriefingSnippetSensor(coordinator, entry, subentry))
-    async_add_entities(entities)
+    async_add_entities(
+        [
+            UserBriefingSummarySensor(coordinator, entry),
+            UserBriefingStatusSensor(coordinator, entry),
+        ]
+    )
+    snippet_entity_manager = UserBriefingSnippetEntityManager(
+        coordinator,
+        entry,
+        async_add_entities,
+    )
+    await snippet_entity_manager.async_sync_entities()
+    entry.async_on_unload(
+        entry.add_update_listener(snippet_entity_manager.async_handle_entry_update)
+    )
+
+
+class UserBriefingSnippetEntityManager:
+    """Keep snippet entities in sync with config subentries."""
+
+    def __init__(
+        self,
+        coordinator: UserBriefingCoordinator,
+        entry: ConfigEntry,
+        async_add_entities: AddEntitiesCallback,
+    ) -> None:
+        self._coordinator = coordinator
+        self._entry = entry
+        self._async_add_entities = async_add_entities
+        self._entities: dict[str, UserBriefingSnippetSensor] = {}
+        try:
+            parameters = inspect.signature(self._async_add_entities).parameters
+        except (TypeError, ValueError):
+            parameters = {}
+        self._supports_config_subentry_id = "config_subentry_id" in parameters or any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        )
+
+    async def async_handle_entry_update(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+    ) -> None:
+        """Sync snippet entities when the parent entry changes."""
+        del hass
+        self._entry = entry
+        await self.async_sync_entities()
+
+        subentries: dict[str, object] = {}
+        for subentry in iter_config_subentries(self._entry, SUBENTRY_TYPE_SNIPPET):
+            raw_id = getattr(subentry, "subentry_id", None)
+            if raw_id is None:
+                continue
+            subentries[str(raw_id)] = subentry
+
+        removed_ids = set(self._entities) - set(subentries)
+        for subentry_id in removed_ids:
+            await self._entities.pop(subentry_id).async_remove()
+
+        new_entities: list[UserBriefingSnippetSensor] = []
+        for subentry_id, subentry in subentries.items():
+            entity = self._entities.get(subentry_id)
+            if entity is None:
+                entity = UserBriefingSnippetSensor(
+                    self._coordinator,
+                    self._entry,
+                    subentry,
+                )
+                self._entities[subentry_id] = entity
+                new_entities.append(entity)
+                continue
+
+            entity.update_from_entry(self._entry, subentry)
+            entity.async_write_ha_state()
+
+        self._async_add_snippet_entities(new_entities)
+
+    def _async_add_snippet_entities(
+        self,
+        entities: Iterable[UserBriefingSnippetSensor],
+    ) -> None:
+        """Add snippet entities with subentry association when supported."""
+        for entity in entities:
+            if self._supports_config_subentry_id:
+                self._async_add_entities(
+                    [entity],
+                    config_subentry_id=entity.subentry_id,
+                )
+            else:
+                self._async_add_entities([entity])
 
 
 class UserBriefingSummarySensor(UserBriefingEntity, SensorEntity):
@@ -72,10 +159,18 @@ class UserBriefingSnippetSensor(UserBriefingEntity, SensorEntity):
 
     def __init__(self, coordinator: UserBriefingCoordinator, entry: ConfigEntry, subentry: object) -> None:
         super().__init__(coordinator)
-        subentry_id = getattr(subentry, "subentry_id", "unknown")
+        self._subentry_id = str(getattr(subentry, "subentry_id", "unknown"))
+        self._attr_unique_id = f"{entry.entry_id}_{self._subentry_id}"
+        self.update_from_entry(entry, subentry)
+
+    @property
+    def subentry_id(self) -> str:
+        """Return the backing config subentry id."""
+        return self._subentry_id
+
+    def update_from_entry(self, entry: ConfigEntry, subentry: object) -> None:
+        """Refresh entity metadata from the latest entry and subentry."""
         title = getattr(subentry, "title", "Snippet")
-        self._subentry_id = subentry_id
-        self._attr_unique_id = f"{entry.entry_id}_{subentry_id}"
         self._attr_name = f"{entry.title} {title}"
 
     @property

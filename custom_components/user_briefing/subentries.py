@@ -11,6 +11,13 @@ def iter_config_subentries(config_entry: Any, subentry_type: str | None = None) 
     subentries = getattr(config_entry, "subentries", ())
 
     if isinstance(subentries, dict):
+        first_value = next(iter(subentries.values()), None)
+        if first_value is not None and hasattr(first_value, "subentry_type"):
+            for subentry in subentries.values():
+                if subentry_type is None or getattr(subentry, "subentry_type", None) == subentry_type:
+                    yield subentry
+            return
+
         if subentry_type is not None:
             values = subentries.get(subentry_type, ())
             if isinstance(values, dict):
