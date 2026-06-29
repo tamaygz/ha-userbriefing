@@ -67,8 +67,11 @@ def test_entity_backed_stub_providers_use_entity_selectors() -> None:
 
     for provider in (beach, wind, home_status):
         schema = provider.build_config_schema().schema
-        assert set(schema) == {"source_ref"}
-        assert isinstance(schema["source_ref"], selector.EntitySelector)
+        assert {getattr(key, "schema", key) for key in schema} == {"source_ref"}
+        assert isinstance(
+            next(value for key, value in schema.items() if getattr(key, "schema", key) == "source_ref"),
+            selector.EntitySelector,
+        )
         assert provider.validate_config({"source_ref": "sensor.example"}) == {
             "source_ref": "sensor.example",
             "source_type": "entity",
