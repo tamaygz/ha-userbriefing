@@ -7,6 +7,7 @@ import logging
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.core import ServiceResponse
+from homeassistant.exceptions import ServiceValidationError
 
 from .const import (
     CONF_CONFIG_ENTRY_ID,
@@ -44,13 +45,19 @@ async def async_register_services(hass: HomeAssistant) -> None:
     async def _handle_generate(call: ServiceCall) -> None:
         coordinator = _resolve_coordinator(hass, call)
         if coordinator is None:
-            raise vol.Invalid("Unknown config_entry_id")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_config_entry_id",
+            )
         await coordinator.async_generate()
 
     async def _handle_preview(call: ServiceCall) -> ServiceResponse:
         coordinator = _resolve_coordinator(hass, call)
         if coordinator is None:
-            raise vol.Invalid("Unknown config_entry_id")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_config_entry_id",
+            )
         result = await coordinator.async_preview()
         return {
             "user_key": result.user_key,
@@ -65,7 +72,10 @@ async def async_register_services(hass: HomeAssistant) -> None:
     async def _handle_refresh_snippet(call: ServiceCall) -> None:
         coordinator = _resolve_coordinator(hass, call)
         if coordinator is None:
-            raise vol.Invalid("Unknown config_entry_id")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_config_entry_id",
+            )
         subentry_id = call.data.get(CONF_SUBENTRY_ID)
         await coordinator.async_generate(subentry_ids={subentry_id})
 

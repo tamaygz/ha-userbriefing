@@ -241,5 +241,10 @@
         "duplicate_source": "A snippet with the same provider and source is already configured."
       }
     }
+  },
+  "exceptions": {
+    "unknown_config_entry_id": {
+      "message": "The provided config_entry_id does not match any loaded User Briefing profile. Use the config entry selector to choose a valid profile."
+    }
   }
 }
