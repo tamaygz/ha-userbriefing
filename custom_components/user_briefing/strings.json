@@ -191,9 +191,12 @@
           "title": "Configure snippet source",
           "description": "Configure the source and scope for this snippet instance.",
           "data": {
-            "source_type": "Source type",
             "source_ref": "Source reference",
             "summary_limit": "Summary limit"
+          },
+          "data_description": {
+            "source_ref": "Choose the entity or integration reference this snippet should read from.",
+            "summary_limit": "Maximum number of items to summarize when this provider supports limiting results."
           }
         },
         "common": {
@@ -204,11 +207,33 @@
             "order": "Display order",
             "priority": "Priority",
             "title_override": "Title override"
+          },
+          "data_description": {
+            "enabled": "Disable this snippet without removing its saved configuration.",
+            "order": "Lower numbers appear earlier in the rendered briefing.",
+            "priority": "Mark snippets as required or optional for future rendering rules.",
+            "title_override": "Optional custom title shown instead of the provider's default name."
           }
         },
         "reconfigure": {
           "title": "Reconfigure snippet",
-          "description": "Update the source or behavior for this snippet instance."
+          "description": "Update the source or behavior for this snippet instance.",
+          "data": {
+            "source_ref": "Source reference",
+            "summary_limit": "Summary limit",
+            "enabled": "Enabled",
+            "order": "Display order",
+            "priority": "Priority",
+            "title_override": "Title override"
+          },
+          "data_description": {
+            "source_ref": "Choose the entity or integration reference this snippet should read from.",
+            "summary_limit": "Maximum number of items to summarize when this provider supports limiting results.",
+            "enabled": "Disable this snippet without removing its saved configuration.",
+            "order": "Lower numbers appear earlier in the rendered briefing.",
+            "priority": "Mark snippets as required or optional for future rendering rules.",
+            "title_override": "Optional custom title shown instead of the provider's default name."
+          }
         }
       },
       "abort": {

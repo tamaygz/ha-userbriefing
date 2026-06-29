@@ -94,7 +94,7 @@ _COMPLIMENTS = (
     "Adventure starts after you leave the house.",
     "Your to-do list fears you.",
     "Make today's version of you proud.",
-    "Great things often begin with "why not?".",
+    'Great things often begin with "why not?".',
     "The world is full of opportunities disguised as effort.",
     "Focus on what you can control.",
     "Sink problems like corner-pocket shots.",
@@ -111,7 +111,7 @@ _COMPLIMENTS = (
     "You are dangerously close to having a fantastic day.",
     "Go make some future memories.",
     "Whatever happens today, you'll handle it.",
-    "Now get out there—and try not to turn "just one game of billiards" into four.",
+    'Now get out there—and try not to turn "just one game of billiards" into four.',
 )
 
 

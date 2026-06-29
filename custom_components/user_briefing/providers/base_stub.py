@@ -7,6 +7,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.helpers import selector
 
+from ..const import CONF_SOURCE_REF, CONF_SOURCE_TYPE
 from ..models import DashboardFragment, ProviderMetadata, SnippetResult
 from .contracts import BriefingProvider
 
@@ -20,6 +21,8 @@ class StubBriefingProvider(BriefingProvider):
     supports_actions = False
     supports_deep_link = False
     supports_dashboard_card = True
+    source_type = "entity"
+    summary_limit_default: int | None = 3
 
     @classmethod
     def describe(cls) -> ProviderMetadata:
@@ -34,25 +37,26 @@ class StubBriefingProvider(BriefingProvider):
             supports_dashboard_card=cls.supports_dashboard_card,
         )
 
+    def build_source_ref_selector(self):
+        """Return the provider-specific selector for choosing the source."""
+        return selector.TextSelector()
+
     def build_config_schema(self) -> vol.Schema:
-        return vol.Schema(
-            {
-                vol.Required("source_type", default="entity"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=["entity", "service", "integration"],
-                        translation_key="provider_source_type",
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Required("source_ref"): selector.TextSelector(),
-                vol.Optional("summary_limit", default=3): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=1, max=20, mode=selector.NumberSelectorMode.BOX)
-                ),
-            }
-        )
+        schema: dict[Any, Any] = {
+            vol.Required(CONF_SOURCE_REF): self.build_source_ref_selector(),
+        }
+        if self.summary_limit_default is not None:
+            schema[vol.Optional("summary_limit", default=self.summary_limit_default)] = selector.NumberSelector(
+                selector.NumberSelectorConfig(min=1, max=20, mode=selector.NumberSelectorMode.BOX)
+            )
+        return vol.Schema(schema)
 
     def validate_config(self, user_input: dict[str, Any]) -> dict[str, Any]:
-        return dict(user_input)
+        config = dict(user_input)
+        config[CONF_SOURCE_TYPE] = self.source_type
+        if self.summary_limit_default is not None:
+            config["summary_limit"] = int(config.get("summary_limit", self.summary_limit_default))
+        return config
 
     def build_reconfigure_schema(
         self,

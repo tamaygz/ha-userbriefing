@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import voluptuous as vol
 from homeassistant.helpers import selector
 
 from ..adapters.todo import TodoAdapter
@@ -26,25 +25,11 @@ def _extract_response_section(payload: dict, source_ref: str | None) -> dict:
 class TaskSummaryProvider(StubBriefingProvider):
     provider_key = "task_summary"
     provider_name = "Task Summary"
+    source_type = "todo_entity"
+    summary_limit_default = 5
 
-    def build_config_schema(self) -> vol.Schema:
-        return vol.Schema(
-            {
-                vol.Required("source_type", default="todo_entity"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=["todo_entity"],
-                        translation_key="provider_source_type",
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Required("source_ref"): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="todo")
-                ),
-                vol.Optional("summary_limit", default=5): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=1, max=20, mode=selector.NumberSelectorMode.BOX)
-                ),
-            }
-        )
+    def build_source_ref_selector(self):
+        return selector.EntitySelector(selector.EntitySelectorConfig(domain="todo"))
 
     def get_adapter(self) -> ProviderAdapter:
         return TodoAdapter(self.hass)
