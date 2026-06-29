@@ -38,7 +38,7 @@
 - [x] TASK-009: Define plugin registry, provider capability metadata, adapter contracts, and compatibility rules.
 - [x] TASK-010: Define configuration UX details for main config flow, options flow, reconfigure flow, and subentry onboarding using the latest Home Assistant UI patterns.
 - [ ] TASK-011: Implement dynamic snippet entity lifecycle so subentry creation, update, and removal are reflected in runtime entities without undocumented reload assumptions.
-- [ ] TASK-012: Replace stub providers with real provider implementations, starting with calendar, weather, task-summary, and compliment.
+- [x] TASK-012: Replace stub providers with real provider implementations, starting with calendar, weather, task-summary, and compliment.
 - [ ] TASK-013: Implement provider-specific reconfigure schemas and richer selectors for built-in providers.
 - [ ] TASK-014: Implement dashboard fragment composition and at least one full per-user dashboard template generated from provider fragments.
 - [ ] TASK-015: Implement notification payload helper generation while keeping delivery workflows stubbed.
@@ -49,7 +49,7 @@
 - [ ] TASK-020: Implement alert promotion, severity ordering, and alert-aware rendering in the coordinator and renderer.
 - [ ] TASK-021: Add dashboard fragments or cards for promoted alerts so alert state is visible before normal informational snippets.
 - [x] TASK-022: Provide reusable adapter primitives (`HomeAssistantEntityAdapter`, `HomeAssistantServiceAdapter`) and a provider `get_adapter()` seam so existing integrations can be consumed with minimal provider code.
-- [ ] TASK-023: Add adapter recipes/wiring for the first real providers (calendar via `calendar.get_events`, weather via `weather.get_forecasts`, task summary via `todo.get_items`) and document the pattern for contributors.
+- [x] TASK-023: Add adapter recipes/wiring for the first real providers (calendar via `calendar.get_events`, weather via `weather.get_forecasts`, task summary via `todo.get_items`) and document the pattern for contributors.
 
 ## Alternatives
 

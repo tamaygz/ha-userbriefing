@@ -1,6 +1,12 @@
 {
   "domain": "user_briefing",
   "name": "User Briefing",
+  "after_dependencies": [
+    "calendar",
+    "notify",
+    "todo",
+    "weather"
+  ],
   "codeowners": [
     "@tamaygz"
   ],
@@ -9,12 +15,6 @@
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/tamaygz/ha-userbriefing/issues",
-  "version": "0.1.0",
   "requirements": [],
-  "after_dependencies": [
-    "calendar",
-    "notify",
-    "todo",
-    "weather"
-  ]
+  "version": "0.1.0"
 }

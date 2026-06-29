@@ -22,10 +22,11 @@ Recommended flow:
 
 ## Current state
 
-This repository contains the scaffold and specification for that setup flow. Provider implementations are intentionally stubbed at this stage.
+This repository contains the scaffold and specification for that setup flow. The calendar, weather, task-summary, and compliment providers now have initial real implementations, while the remaining providers are still scaffolded.
 
 That means the main thing you can validate in Home Assistant right now is:
 
 - HACS install path
 - integration discovery and add flow
 - config flow and subentry onboarding skeleton
+- real collection for calendar, weather, task-summary, and compliment snippets

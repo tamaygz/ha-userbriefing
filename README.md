@@ -31,7 +31,7 @@ This repository is set up for the fastest current real-world test path through H
 
 Current limitation:
 
-- this repository is scaffold-first, so installation and setup can be tested in Home Assistant now, but most providers and runtime behavior are still stubs.
+- installation and setup can be tested in Home Assistant now, and the built-in calendar, weather, task-summary, and compliment providers collect real data, but most other providers and some runtime behaviors are still stubs.
 
 ## Design goals
 
