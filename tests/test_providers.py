@@ -116,6 +116,7 @@ def test_task_summary_provider_collects_and_filters_open_tasks() -> None:
 
 def test_task_summary_provider_emits_alerts_for_due_tasks() -> None:
     provider = TaskSummaryProvider(SimpleNamespace(services=_FakeServices({})))
+    today = datetime.now(UTC).date().isoformat()
 
     snippet = provider.normalize(
         {
@@ -126,7 +127,7 @@ def test_task_summary_provider_emits_alerts_for_due_tasks() -> None:
                 "todo.home": {
                     "items": [
                         {"summary": "Pay bill", "status": "needs_action", "due": "2000-01-01"},
-                        {"summary": "Call mom", "status": "needs_action", "due": datetime.now(UTC).date().isoformat()},
+                        {"summary": "Call mom", "status": "needs_action", "due": today},
                     ]
                 }
             },
