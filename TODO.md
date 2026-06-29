@@ -16,7 +16,7 @@
 
 ## Follow-up Work
 
-- [ ] [Implement dynamic snippet entity lifecycle so add, update, and remove of subentries are reflected without relying on manual reload assumptions.](https://github.com/tamaygz/ha-userbriefing/issues/14)
+- [x] [Implement dynamic snippet entity lifecycle so add, update, and remove of subentries are reflected without relying on manual reload assumptions.](https://github.com/tamaygz/ha-userbriefing/issues/14)
 - [x] [Replace scaffold providers with real provider implementations one by one, starting with calendar, weather, task-summary, and compliment.](https://github.com/tamaygz/ha-userbriefing/issues/15)
 - [ ] [Replace generic provider stub schemas with provider-specific setup and reconfigure selectors wherever Home Assistant offers stronger UX primitives.](https://github.com/tamaygz/ha-userbriefing/issues/16)
 - [ ] [Implement structured alert support so providers can emit alerts separately from normal snippet text.](https://github.com/tamaygz/ha-userbriefing/issues/17)

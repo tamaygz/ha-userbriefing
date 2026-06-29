@@ -37,7 +37,7 @@
 - [x] TASK-008: Review optional feature additions with the user before locking the v1 spec.
 - [x] TASK-009: Define plugin registry, provider capability metadata, adapter contracts, and compatibility rules.
 - [x] TASK-010: Define configuration UX details for main config flow, options flow, reconfigure flow, and subentry onboarding using the latest Home Assistant UI patterns.
-- [ ] TASK-011: Implement dynamic snippet entity lifecycle so subentry creation, update, and removal are reflected in runtime entities without undocumented reload assumptions.
+- [x] TASK-011: Implement dynamic snippet entity lifecycle so subentry creation, update, and removal are reflected in runtime entities without undocumented reload assumptions.
 - [x] TASK-012: Replace stub providers with real provider implementations, starting with calendar, weather, task-summary, and compliment.
 - [ ] TASK-013: Implement provider-specific reconfigure schemas and richer selectors for built-in providers.
 - [ ] TASK-014: Implement dashboard fragment composition and at least one full per-user dashboard template generated from provider fragments.

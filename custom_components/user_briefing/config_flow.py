@@ -376,6 +376,15 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
             }
         )
 
+    def _get_subentry_title(
+        self,
+        provider,
+        provider_config: dict[str, Any],
+        title_override: str | None,
+    ) -> str:
+        """Return the stored title for a snippet subentry."""
+        return title_override or provider.get_instance_title(provider_config)
+
     async def async_step_user(
         self,
         user_input: dict[str, Any] | None = None,
@@ -435,7 +444,11 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
             if self._find_duplicate_subentry(self._provider_key, instance_unique_key):
                 return self.async_abort(reason="duplicate_source")
 
-            title = user_input.get(CONF_TITLE_OVERRIDE) or provider.get_instance_title(self._provider_config)
+            title = self._get_subentry_title(
+                provider,
+                self._provider_config,
+                user_input.get(CONF_TITLE_OVERRIDE),
+            )
             return self.async_create_entry(
                 title=title,
                 data={
@@ -479,6 +492,11 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
             ):
                 return self.async_abort(reason="duplicate_source")
 
+            title = self._get_subentry_title(
+                provider,
+                provider_updates,
+                user_input.get(CONF_TITLE_OVERRIDE),
+            )
             return self.async_update_and_abort(
                 config_subentry,
                 data_updates=provider_updates,
@@ -488,6 +506,7 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
                     CONF_PRIORITY: user_input[CONF_PRIORITY],
                     CONF_TITLE_OVERRIDE: user_input.get(CONF_TITLE_OVERRIDE),
                 },
+                title=title,
             )
 
         provider_schema = provider.build_reconfigure_schema(
