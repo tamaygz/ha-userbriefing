@@ -8,3 +8,5 @@ from .registry import register_provider
 class NewsHeadlinesProvider(StubBriefingProvider):
     provider_key = "news_headlines"
     provider_name = "News Headlines"
+    source_type = "integration"
+    summary_limit_default = 5

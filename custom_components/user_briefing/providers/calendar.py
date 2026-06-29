@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import voluptuous as vol
 from homeassistant.helpers import selector
 
 from ..adapters.calendar import CalendarAdapter
@@ -44,25 +43,11 @@ def _format_event_time(event: dict) -> str | None:
 class CalendarProvider(StubBriefingProvider):
     provider_key = "calendar"
     provider_name = "Calendar Summary"
+    source_type = "calendar_entity"
+    summary_limit_default = 3
 
-    def build_config_schema(self) -> vol.Schema:
-        return vol.Schema(
-            {
-                vol.Required("source_type", default="calendar_entity"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=["calendar_entity"],
-                        translation_key="provider_source_type",
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Required("source_ref"): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="calendar")
-                ),
-                vol.Optional("summary_limit", default=3): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=1, max=20, mode=selector.NumberSelectorMode.BOX)
-                ),
-            }
-        )
+    def build_source_ref_selector(self):
+        return selector.EntitySelector(selector.EntitySelectorConfig(domain="calendar"))
 
     def get_adapter(self) -> ProviderAdapter:
         return CalendarAdapter(self.hass)

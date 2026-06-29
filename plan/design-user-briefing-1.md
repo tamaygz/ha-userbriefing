@@ -39,7 +39,7 @@
 - [x] TASK-010: Define configuration UX details for main config flow, options flow, reconfigure flow, and subentry onboarding using the latest Home Assistant UI patterns.
 - [x] TASK-011: Implement dynamic snippet entity lifecycle so subentry creation, update, and removal are reflected in runtime entities without undocumented reload assumptions.
 - [x] TASK-012: Replace stub providers with real provider implementations, starting with calendar, weather, task-summary, and compliment.
-- [ ] TASK-013: Implement provider-specific reconfigure schemas and richer selectors for built-in providers.
+- [x] TASK-013: Implement provider-specific reconfigure schemas and richer selectors for built-in providers.
 - [ ] TASK-014: Implement dashboard fragment composition and at least one full per-user dashboard template generated from provider fragments.
 - [ ] TASK-015: Implement notification payload helper generation while keeping delivery workflows stubbed.
 - [ ] TASK-016: Decide and implement the final dedicated entity surface for generated-at and per-snippet status, or revise architecture docs to match the chosen entity model.

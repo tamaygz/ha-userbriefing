@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import voluptuous as vol
 from homeassistant.helpers import selector
 
 from ..adapters.weather import WeatherAdapter
@@ -46,25 +45,11 @@ def _describe_forecast(forecast: dict) -> str:
 class WeatherForecastProvider(StubBriefingProvider):
     provider_key = "weather_forecast"
     provider_name = "Weather Forecast"
+    source_type = "weather_entity"
+    summary_limit_default = 3
 
-    def build_config_schema(self) -> vol.Schema:
-        return vol.Schema(
-            {
-                vol.Required("source_type", default="weather_entity"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=["weather_entity"],
-                        translation_key="provider_source_type",
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Required("source_ref"): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="weather")
-                ),
-                vol.Optional("summary_limit", default=3): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=1, max=20, mode=selector.NumberSelectorMode.BOX)
-                ),
-            }
-        )
+    def build_source_ref_selector(self):
+        return selector.EntitySelector(selector.EntitySelectorConfig(domain="weather"))
 
     def get_adapter(self) -> ProviderAdapter:
         return WeatherAdapter(self.hass)
