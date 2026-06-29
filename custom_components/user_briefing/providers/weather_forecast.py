@@ -154,7 +154,7 @@ class WeatherForecastProvider(StubBriefingProvider):
             data={"forecast": forecast_items},
             meta={"source_ref": source_ref},
             alerts=_build_alerts(
-                visible_forecast,
+                forecast_items,
                 instance_id=instance_id,
                 provider_key=self.describe().key,
                 source_ref=source_ref,
