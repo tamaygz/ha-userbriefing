@@ -1,8 +1,6 @@
 """Sensor entities for User Briefing."""
 
 from __future__ import annotations
-
-import inspect
 from collections.abc import Iterable
 
 from homeassistant.components.sensor import SensorEntity
@@ -53,14 +51,7 @@ class UserBriefingSnippetEntityManager:
         self._entry = entry
         self._async_add_entities = async_add_entities
         self._entities: dict[str, UserBriefingSnippetSensor] = {}
-        try:
-            parameters = inspect.signature(self._async_add_entities).parameters
-        except (TypeError, ValueError):
-            parameters = {}
-        self._supports_config_subentry_id = "config_subentry_id" in parameters or any(
-            parameter.kind is inspect.Parameter.VAR_KEYWORD
-            for parameter in parameters.values()
-        )
+        self._supports_config_subentry_id = True
 
     async def async_handle_entry_update(
         self,
@@ -71,6 +62,9 @@ class UserBriefingSnippetEntityManager:
         del hass
         self._entry = entry
         await self.async_sync_entities()
+
+    async def async_sync_entities(self) -> None:
+        """Sync snippet entities to the current subentry set."""
 
         subentries: dict[str, object] = {}
         for subentry in iter_config_subentries(self._entry, SUBENTRY_TYPE_SNIPPET):
@@ -108,12 +102,18 @@ class UserBriefingSnippetEntityManager:
         """Add snippet entities with subentry association when supported."""
         for entity in entities:
             if self._supports_config_subentry_id:
-                self._async_add_entities(
-                    [entity],
-                    config_subentry_id=entity.subentry_id,
-                )
-            else:
-                self._async_add_entities([entity])
+                try:
+                    self._async_add_entities(
+                        [entity],
+                        config_subentry_id=entity.subentry_id,
+                    )
+                    continue
+                except TypeError as err:
+                    if "unexpected keyword argument" not in str(err):
+                        raise
+                    self._supports_config_subentry_id = False
+
+            self._async_add_entities([entity])
 
 
 class UserBriefingSummarySensor(UserBriefingEntity, SensorEntity):
