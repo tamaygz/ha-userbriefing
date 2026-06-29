@@ -23,7 +23,7 @@
 - [ ] [Implement core composer logic that sorts promoted alerts to the top of the briefing before standard snippet content.](https://github.com/tamaygz/ha-userbriefing/issues/18)
 - [ ] [Implement dashboard fragment composition into richer generated templates and expose at least one end-to-end per-user dashboard example.](https://github.com/tamaygz/ha-userbriefing/issues/19)
 - [ ] [Implement notification payload helpers without enabling full delivery workflows yet.](https://github.com/tamaygz/ha-userbriefing/issues/20)
-- [ ] [Add dedicated generated-at and per-snippet status entities, or explicitly revise the architecture/docs if attributes remain the long-term model.](https://github.com/tamaygz/ha-userbriefing/issues/21)
+- [x] [Add dedicated generated-at and per-snippet status entities, or explicitly revise the architecture/docs if attributes remain the long-term model.](https://github.com/tamaygz/ha-userbriefing/issues/21)
 - [ ] [Expand service behavior tests to cover `generate`, `preview` response payloads, `refresh_snippet`, required target semantics, and unknown `config_entry_id` handling.](https://github.com/tamaygz/ha-userbriefing/issues/22)
 - [ ] [Add flow behavior tests for post-create subentry chaining, duplicate-source prevention, singleton providers, and provider-driven reconfigure.](https://github.com/tamaygz/ha-userbriefing/issues/23)
 - [ ] [Add coordinator tests for respecting `enabled`, `order`, `priority`, partial provider failure, and preview non-mutation.](https://github.com/tamaygz/ha-userbriefing/issues/24)

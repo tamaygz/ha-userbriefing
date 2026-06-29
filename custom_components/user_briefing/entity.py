@@ -6,7 +6,7 @@ from collections.abc import Callable
 
 from homeassistant.helpers.entity import Entity
 
-from .const import ATTR_GENERATED_AT, ATTR_SNIPPET_COUNT, ATTR_SUMMARY_STATE
+from .const import ATTR_SNIPPET_COUNT, ATTR_SUMMARY_STATE
 from .models import BriefingResult
 from .coordinator import UserBriefingCoordinator
 
@@ -46,6 +46,5 @@ class UserBriefingEntity(Entity):
 
         return {
             ATTR_SUMMARY_STATE: briefing_result.summary_state,
-            ATTR_GENERATED_AT: briefing_result.generated_at.isoformat(),
             ATTR_SNIPPET_COUNT: len(briefing_result.snippets),
         }

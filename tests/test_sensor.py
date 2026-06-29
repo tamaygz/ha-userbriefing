@@ -2,28 +2,36 @@
 
 import asyncio
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
-from custom_components.user_briefing.const import DOMAIN, SUBENTRY_TYPE_SNIPPET
+from custom_components.user_briefing.const import (
+    ATTR_GENERATED_AT,
+    DOMAIN,
+    SUBENTRY_TYPE_SNIPPET,
+)
 from custom_components.user_briefing.sensor import (
+    UserBriefingGeneratedAtSensor,
     UserBriefingSnippetEntityManager,
     UserBriefingSnippetSensor,
+    UserBriefingSnippetStatusSensor,
     async_setup_entry,
 )
 from custom_components.user_briefing.subentries import iter_config_subentries
 
 
 class _FakeCoordinator:
-    last_result = None
+    def __init__(self) -> None:
+        self.last_result = None
+        self._snippet_results: dict[str, object] = {}
 
     def async_add_listener(self, listener):
         del listener
         return lambda: None
 
     def get_snippet_result(self, instance_id: str):
-        del instance_id
-        return None
+        return self._snippet_results.get(instance_id)
 
 
 class _FakeEntry:
@@ -94,30 +102,71 @@ def test_async_setup_entry_syncs_snippet_sensor_lifecycle() -> None:
     snippet_entities = [
         entity for entity in add_entities.entities if isinstance(entity, UserBriefingSnippetSensor)
     ]
+    snippet_status_entities = [
+        entity
+        for entity in add_entities.entities
+        if isinstance(entity, UserBriefingSnippetStatusSensor)
+    ]
     assert [entity.subentry_id for entity in snippet_entities] == ["snippet-1"]
-    assert add_entities.calls[1] == {"config_subentry_id": "snippet-1"}
+    assert [entity.subentry_id for entity in snippet_status_entities] == ["snippet-1"]
+    assert add_entities.calls[1:3] == [
+        {"config_subentry_id": "snippet-1"},
+        {"config_subentry_id": "snippet-1"},
+    ]
 
     entry.subentries["snippet-1"].title = "Updated Calendar"
     entry.subentries["snippet-2"] = _subentry("snippet-2", "Weather")
 
     asyncio.run(entry.async_fire_update())
 
-    snippet_entities_by_id = {
-        entity.subentry_id: entity
+    snippet_entities_by_type = {
+        (type(entity), entity.subentry_id): entity
         for entity in add_entities.entities
-        if isinstance(entity, UserBriefingSnippetSensor)
+        if isinstance(entity, (UserBriefingSnippetSensor, UserBriefingSnippetStatusSensor))
     }
-    assert snippet_entities_by_id["snippet-1"].name == "Alex Updated Calendar"
-    assert snippet_entities_by_id["snippet-1"] in add_entities.updated_entities
-    assert snippet_entities_by_id["snippet-2"].name == "Alex Weather"
-    assert add_entities.calls[2] == {"config_subentry_id": "snippet-2"}
+    assert (
+        snippet_entities_by_type[(UserBriefingSnippetSensor, "snippet-1")].name
+        == "Alex Updated Calendar"
+    )
+    assert (
+        snippet_entities_by_type[(UserBriefingSnippetSensor, "snippet-1")]
+        in add_entities.updated_entities
+    )
+    assert (
+        snippet_entities_by_type[(UserBriefingSnippetStatusSensor, "snippet-1")].name
+        == "Alex Updated Calendar Status"
+    )
+    assert (
+        snippet_entities_by_type[(UserBriefingSnippetStatusSensor, "snippet-1")]
+        in add_entities.updated_entities
+    )
+    assert (
+        snippet_entities_by_type[(UserBriefingSnippetSensor, "snippet-2")].name
+        == "Alex Weather"
+    )
+    assert (
+        snippet_entities_by_type[(UserBriefingSnippetStatusSensor, "snippet-2")].name
+        == "Alex Weather Status"
+    )
+    assert add_entities.calls[3:5] == [
+        {"config_subentry_id": "snippet-2"},
+        {"config_subentry_id": "snippet-2"},
+    ]
 
-    snippet_entities_by_id["snippet-2"].async_remove.reset_mock()
+    snippet_entities_by_type[(UserBriefingSnippetSensor, "snippet-2")].async_remove.reset_mock()
+    snippet_entities_by_type[
+        (UserBriefingSnippetStatusSensor, "snippet-2")
+    ].async_remove.reset_mock()
     entry.subentries.pop("snippet-2")
 
     asyncio.run(entry.async_fire_update())
 
-    snippet_entities_by_id["snippet-2"].async_remove.assert_awaited_once()
+    snippet_entities_by_type[
+        (UserBriefingSnippetSensor, "snippet-2")
+    ].async_remove.assert_awaited_once()
+    snippet_entities_by_type[
+        (UserBriefingSnippetStatusSensor, "snippet-2")
+    ].async_remove.assert_awaited_once()
 
 
 def test_async_setup_entry_falls_back_without_config_subentry_id_support() -> None:
@@ -159,9 +208,54 @@ def test_async_setup_entry_falls_back_without_config_subentry_id_support() -> No
         if isinstance(e, UserBriefingSnippetSensor)
         and getattr(e, "subentry_id", None) == "snippet-2"
     ]
+    new_snippet_status_entities = [
+        e for e in recorder.entities
+        if isinstance(e, UserBriefingSnippetStatusSensor)
+        and getattr(e, "subentry_id", None) == "snippet-2"
+    ]
     assert len(new_snippet_entities) == 1
+    assert len(new_snippet_status_entities) == 1
     # All calls after setup should have empty kwargs (flag stayed False)
-    assert all(c == {} for c in recorder.calls[2:])  # calls[0:2] are profile sensors
+    assert all(c == {} for c in recorder.calls[3:])  # calls[0:3] are profile sensors
+
+
+def test_generated_at_and_snippet_status_entities_expose_dedicated_state() -> None:
+    coordinator = _FakeCoordinator()
+    generated_at = datetime(2026, 6, 29, 12, 0, tzinfo=UTC)
+    snippet = SimpleNamespace(
+        provider_key="calendar",
+        status="warning",
+        priority="required",
+        scenario="busy",
+        text="Busy day ahead",
+    )
+    coordinator.last_result = SimpleNamespace(
+        generated_at=generated_at,
+        summary_state="ready",
+        snippets=[snippet],
+    )
+    coordinator._snippet_results["snippet-1"] = snippet
+    entry = _FakeEntry({"snippet-1": _subentry("snippet-1", "Calendar")})
+
+    generated_sensor = UserBriefingGeneratedAtSensor(coordinator, entry)
+    snippet_sensor = UserBriefingSnippetSensor(
+        coordinator, entry, entry.subentries["snippet-1"]
+    )
+    snippet_status_sensor = UserBriefingSnippetStatusSensor(
+        coordinator, entry, entry.subentries["snippet-1"]
+    )
+
+    assert generated_sensor.native_value == generated_at
+    assert snippet_status_sensor.native_value == "warning"
+    assert snippet_status_sensor.name == "Alex Calendar Status"
+    assert ATTR_GENERATED_AT not in snippet_sensor.extra_state_attributes
+    assert snippet_sensor.extra_state_attributes == {
+        "summary_state": "ready",
+        "snippet_count": 1,
+        "provider_key": "calendar",
+        "priority": "required",
+        "scenario": "busy",
+    }
 
 
 def test_async_add_snippet_entities_reraises_unrelated_type_error() -> None:
