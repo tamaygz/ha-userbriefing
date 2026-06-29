@@ -159,20 +159,21 @@ def _build_dashboard_document(
             continue
 
         if template_key == "compact" and fragment.fragment_key == "briefing_overview":
-            cards.extend(
-                [
-                    {
-                        "type": "markdown",
-                        "title": "Briefing Summary",
-                        "content": briefing.rendered_text or "No rendered briefing is available yet.",
-                    },
+            cards.append(
+                {
+                    "type": "markdown",
+                    "title": "Briefing Summary",
+                    "content": briefing.rendered_text or "No rendered briefing is available yet.",
+                }
+            )
+            if compact_status_entities:
+                cards.append(
                     {
                         "type": "entities",
                         "title": "Briefing Status",
                         "entities": compact_status_entities,
-                    },
-                ]
-            )
+                    }
+                )
             continue
 
         cards.append(
