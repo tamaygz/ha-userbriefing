@@ -84,8 +84,11 @@ def test_integration_stub_providers_keep_only_relevant_fields() -> None:
 
     for provider in (news, mail):
         schema = provider.build_config_schema().schema
-        assert set(schema) == {"source_ref", "summary_limit"}
-        assert isinstance(schema["source_ref"], selector.TextSelector)
+        assert {getattr(key, "schema", key) for key in schema} == {"source_ref", "summary_limit"}
+        assert isinstance(
+            next(value for key, value in schema.items() if getattr(key, "schema", key) == "source_ref"),
+            selector.TextSelector,
+        )
         assert provider.validate_config({"source_ref": "demo", "summary_limit": 7}) == {
             "source_ref": "demo",
             "summary_limit": 7,
