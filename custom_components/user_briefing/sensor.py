@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Iterable
 
 from homeassistant.components.sensor import SensorEntity
@@ -52,6 +53,14 @@ class UserBriefingSnippetEntityManager:
         self._entry = entry
         self._async_add_entities = async_add_entities
         self._entities: dict[str, UserBriefingSnippetSensor] = {}
+        try:
+            parameters = inspect.signature(self._async_add_entities).parameters
+        except (TypeError, ValueError):
+            parameters = {}
+        self._supports_config_subentry_id = "config_subentry_id" in parameters or any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        )
 
     async def async_handle_entry_update(
         self,
@@ -98,12 +107,12 @@ class UserBriefingSnippetEntityManager:
     ) -> None:
         """Add snippet entities with subentry association when supported."""
         for entity in entities:
-            try:
+            if self._supports_config_subentry_id:
                 self._async_add_entities(
                     [entity],
                     config_subentry_id=entity.subentry_id,
                 )
-            except TypeError:
+            else:
                 self._async_add_entities([entity])
 
 
