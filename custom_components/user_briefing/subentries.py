@@ -36,3 +36,27 @@ def iter_config_subentries(config_entry: Any, subentry_type: str | None = None) 
     for subentry in subentries:
         if subentry_type is None or getattr(subentry, "subentry_type", None) == subentry_type:
             yield subentry
+
+
+def get_config_subentry_data(
+    config_subentry: Any,
+    option_keys: Iterable[str] = (),
+) -> dict[str, Any]:
+    """Return subentry data without compatibility-mirrored option values."""
+    data = dict(getattr(config_subentry, "data", {}) or {})
+    for key in option_keys:
+        data.pop(key, None)
+    return data
+
+
+def get_config_subentry_options(
+    config_subentry: Any,
+    fallback_keys: Iterable[str] = (),
+) -> dict[str, Any]:
+    """Return subentry options, falling back to mirrored values stored in data."""
+    data = getattr(config_subentry, "data", {}) or {}
+    options = dict(getattr(config_subentry, "options", {}) or {})
+    for key in fallback_keys:
+        if key not in options and key in data:
+            options[key] = data[key]
+    return options

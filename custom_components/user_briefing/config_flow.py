@@ -59,10 +59,11 @@ from .const import (
     DEFAULT_PRIORITY,
     DEFAULT_RENDERING_STYLE,
     DOMAIN,
+    SNIPPET_COMMON_SETTING_KEYS,
     SUBENTRY_TYPE_SNIPPET,
 )
 from .providers.registry import create_provider, ensure_builtin_providers_loaded, list_provider_metadata
-from .subentries import iter_config_subentries
+from .subentries import get_config_subentry_data, get_config_subentry_options, iter_config_subentries
 
 
 class UserBriefingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -327,6 +328,82 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
         """Instantiate the current provider."""
         return create_provider(self.hass, self._provider_key)
 
+    def _provider_config_from_subentry(self, config_subentry: object) -> dict[str, Any]:
+        """Return provider-specific subentry data across HA storage variants."""
+        return get_config_subentry_data(config_subentry, SNIPPET_COMMON_SETTING_KEYS)
+
+    def _common_settings_from_user_input(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Return shared snippet settings from form input."""
+        # CONF_TITLE_OVERRIDE is optional; all other keys are required.
+        result = {
+            k: user_input[k]
+            for k in SNIPPET_COMMON_SETTING_KEYS
+            if k != CONF_TITLE_OVERRIDE
+        }
+        result[CONF_TITLE_OVERRIDE] = user_input.get(CONF_TITLE_OVERRIDE)
+        return result
+
+    def _common_settings_from_subentry(self, config_subentry: object) -> dict[str, Any]:
+        """Return shared snippet settings across HA storage variants."""
+        return get_config_subentry_options(config_subentry, SNIPPET_COMMON_SETTING_KEYS)
+
+    def _create_subentry_entry(
+        self,
+        title: str,
+        provider_config: dict[str, Any],
+        common_settings: dict[str, Any],
+    ) -> FlowResult:
+        """Create a snippet subentry across Home Assistant API variants."""
+        data = {
+            CONF_PROVIDER_KEY: self._provider_key,
+            **provider_config,
+        }
+        try:
+            return self.async_create_entry(
+                title=title,
+                data=data,
+                options=common_settings,
+            )
+        except TypeError as err:
+            if "unexpected keyword argument" not in str(err):
+                raise
+            return self.async_create_entry(
+                title=title,
+                data={
+                    **data,
+                    **common_settings,
+                },
+            )
+
+    def _update_subentry_entry(
+        self,
+        config_subentry: object,
+        title: str,
+        provider_updates: dict[str, Any],
+        common_settings: dict[str, Any],
+    ) -> FlowResult:
+        """Update a snippet subentry across Home Assistant API variants."""
+        try:
+            return self.async_update_and_abort(
+                config_subentry,
+                data_updates=provider_updates,
+                options_updates=common_settings,
+                title=title,
+            )
+        except TypeError as err:
+            if "unexpected keyword argument" not in str(err):
+                raise
+            existing_provider_key = (getattr(config_subentry, "data", {}) or {}).get(CONF_PROVIDER_KEY)
+            return self.async_update_and_abort(
+                config_subentry,
+                data_updates={
+                    CONF_PROVIDER_KEY: existing_provider_key,
+                    **provider_updates,
+                    **common_settings,
+                },
+                title=title,
+            )
+
     def _has_singleton_conflict(self, provider_key: str) -> bool:
         """Return whether a provider singleton already exists on the parent entry."""
         parent_entry = self._get_parent_entry()
@@ -350,9 +427,10 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
         for subentry in iter_config_subentries(parent_entry, SUBENTRY_TYPE_SNIPPET):
             if getattr(subentry, "subentry_id", None) == ignore_subentry_id:
                 continue
-            if subentry.data.get(CONF_PROVIDER_KEY) != provider_key:
+            provider_config = self._provider_config_from_subentry(subentry)
+            if provider_config.get(CONF_PROVIDER_KEY) != provider_key:
                 continue
-            existing_key = provider.get_instance_unique_key(dict(subentry.data))
+            existing_key = provider.get_instance_unique_key(provider_config)
             if existing_key == unique_key:
                 return True
         return False
@@ -393,9 +471,10 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
         ensure_builtin_providers_loaded()
 
         if user_input is not None:
-            self._provider_key = user_input[CONF_PROVIDER_KEY]
+            provider_key = user_input[CONF_PROVIDER_KEY]
+            self._provider_key = provider_key
             provider = self._provider_instance()
-            if not provider.describe().supports_multiple_instances and self._has_singleton_conflict(self._provider_key):
+            if not provider.describe().supports_multiple_instances and self._has_singleton_conflict(provider_key):
                 return self.async_abort(reason="provider_singleton")
             return await self.async_step_provider_config()
 
@@ -439,9 +518,11 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
     ) -> FlowResult:
         """Configure common snippet behavior."""
         provider = self._provider_instance()
+        provider_key = self._provider_key
+        assert provider_key is not None
         if user_input is not None:
             instance_unique_key = provider.get_instance_unique_key(self._provider_config)
-            if self._find_duplicate_subentry(self._provider_key, instance_unique_key):
+            if self._find_duplicate_subentry(provider_key, instance_unique_key):
                 return self.async_abort(reason="duplicate_source")
 
             title = self._get_subentry_title(
@@ -449,18 +530,10 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
                 self._provider_config,
                 user_input.get(CONF_TITLE_OVERRIDE),
             )
-            return self.async_create_entry(
-                title=title,
-                data={
-                    CONF_PROVIDER_KEY: self._provider_key,
-                    **self._provider_config,
-                },
-                options={
-                    CONF_ENABLED: user_input[CONF_ENABLED],
-                    CONF_ORDER: user_input[CONF_ORDER],
-                    CONF_PRIORITY: user_input[CONF_PRIORITY],
-                    CONF_TITLE_OVERRIDE: user_input.get(CONF_TITLE_OVERRIDE),
-                },
+            return self._create_subentry_entry(
+                title,
+                self._provider_config,
+                self._common_settings_from_user_input(user_input),
             )
 
         return self.async_show_form(
@@ -474,14 +547,16 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
     ) -> FlowResult:
         """Reconfigure an existing snippet subentry."""
         config_subentry = self._get_reconfigure_subentry()
-        provider_key = config_subentry.data[CONF_PROVIDER_KEY]
+        provider_config = self._provider_config_from_subentry(config_subentry)
+        common_settings = self._common_settings_from_subentry(config_subentry)
+        provider_key = provider_config[CONF_PROVIDER_KEY]
         provider = create_provider(self.hass, provider_key)
 
         if user_input is not None:
             provider_input = {
                 key: value
                 for key, value in user_input.items()
-                if key not in {CONF_ENABLED, CONF_ORDER, CONF_PRIORITY, CONF_TITLE_OVERRIDE}
+                if key not in SNIPPET_COMMON_SETTING_KEYS
             }
             provider_updates = provider.validate_reconfigure_config(provider_input)
             instance_unique_key = provider.get_instance_unique_key(provider_updates)
@@ -497,23 +572,18 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
                 provider_updates,
                 user_input.get(CONF_TITLE_OVERRIDE),
             )
-            return self.async_update_and_abort(
+            return self._update_subentry_entry(
                 config_subentry,
-                data_updates=provider_updates,
-                options_updates={
-                    CONF_ENABLED: user_input[CONF_ENABLED],
-                    CONF_ORDER: user_input[CONF_ORDER],
-                    CONF_PRIORITY: user_input[CONF_PRIORITY],
-                    CONF_TITLE_OVERRIDE: user_input.get(CONF_TITLE_OVERRIDE),
-                },
-                title=title,
+                title,
+                provider_updates,
+                self._common_settings_from_user_input(user_input),
             )
 
         provider_schema = provider.build_reconfigure_schema(
-            dict(config_subentry.data),
-            dict(config_subentry.options),
+            provider_config,
+            common_settings,
         )
-        suggested_values = {**dict(config_subentry.data), **dict(config_subentry.options)}
+        suggested_values = {**provider_config, **common_settings}
         common_schema = self._build_common_schema()
 
         return self.async_show_form(

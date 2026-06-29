@@ -22,6 +22,17 @@ CONF_ORDER: Final = "order"
 CONF_PRIORITY: Final = "priority"
 CONF_TITLE_OVERRIDE: Final = "title_override"
 CONF_PROVIDER_OPTIONS: Final = "provider_options"
+
+# Keys stored in subentry options that separate "how to present" from "what to collect".
+# Used by coordinator and config flow to split subentry data from options across
+# Home Assistant versions that may not support subentry options storage.
+SNIPPET_COMMON_SETTING_KEYS: tuple[str, ...] = (
+    CONF_ENABLED,
+    CONF_ORDER,
+    CONF_PRIORITY,
+    CONF_TITLE_OVERRIDE,
+)
+
 CONF_CONFIG_ENTRY_ID: Final = "config_entry_id"
 CONF_SUBENTRY_ID: Final = "subentry_id"
 
