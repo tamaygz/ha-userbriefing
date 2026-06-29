@@ -175,6 +175,10 @@
   "config_subentries": {
     "snippet": {
       "title": "Briefing snippet",
+      "entry_type": "Briefing snippet",
+      "initiate_flow": {
+        "user": "Add snippet"
+      },
       "step": {
         "user": {
           "title": "Add snippet",
