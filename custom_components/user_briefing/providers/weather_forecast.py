@@ -31,7 +31,7 @@ def _format_temperature(value: object) -> str | None:
 
 
 def _describe_forecast(forecast: dict) -> str:
-    condition = str(forecast.get("condition", "unknown")).replace("_", " ")
+    condition = str(forecast.get("condition") or "unknown").replace("_", " ")
     high = _format_temperature(forecast.get("temperature"))
     low = _format_temperature(forecast.get("templow"))
 
