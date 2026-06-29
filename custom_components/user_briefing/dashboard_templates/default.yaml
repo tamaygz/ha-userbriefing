@@ -6,7 +6,7 @@ views:
       - type: markdown
         title: Briefing Alerts
         content: >
-          - **WARNING** Calendar soon: Standup starts at 09:00. (calendar.work)
+          - **WARNING** Calendar soon: Standup: Standup starts at 09:00. (calendar.work)
       - type: entities
         title: Briefing Overview
         entities:
