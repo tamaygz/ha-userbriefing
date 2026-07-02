@@ -313,5 +313,15 @@
     "push_snippet_invalid_subentry": {
       "message": "The provided subentry_id does not match a custom_text snippet configured in push-service (slot) mode. Check the snippet type and mode in the integration settings."
     }
+  },
+  "entity": {
+    "button": {
+      "generate": {
+        "name": "Generate Briefing"
+      },
+      "deliver": {
+        "name": "Deliver Briefing"
+      }
+    }
   }
 }
