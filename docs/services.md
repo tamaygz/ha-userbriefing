@@ -11,7 +11,7 @@ Current scaffold behavior:
 
 - `generate` requires `config_entry_id` and updates coordinator-backed entity state.
 - `preview` requires `config_entry_id`, returns rendered preview data, and does not mutate entity state.
-- `deliver` requires `config_entry_id`, reads the last cached briefing (or generates a preview if none exists), and logs the notification payload. Actual push delivery is stubbed pending a configured target channel.
+- `deliver` requires `config_entry_id`, reads the last cached briefing (or generates a preview if none exists), and logs whether the notification payload is ready. Actual push delivery is stubbed pending a configured target channel.
 - `refresh_snippet` requires `config_entry_id` and `subentry_id`.
 
 ## Notification payload
