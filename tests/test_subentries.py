@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
 from custom_components.user_briefing.subentries import (
     get_config_subentry_data,
     get_config_subentry_options,
+    iter_config_subentries,
 )
 
 
@@ -123,3 +124,58 @@ class TestGetConfigSubentryData:
             sub, ["enabled", "order", "priority", "title_override"]
         )
         assert result == {"provider_key": "calendar", "source_ref": "calendar.work"}
+
+
+class TestIterConfigSubentries:
+    """Tests for the iter_config_subentries helper."""
+
+    def _subentry(self, subentry_id: str, subentry_type: str = "snippet") -> SimpleNamespace:
+        return SimpleNamespace(
+            subentry_id=subentry_id,
+            subentry_type=subentry_type,
+            data={"provider_key": "compliment"},
+            options={"enabled": True},
+        )
+
+    def test_plain_dict_id_keyed_yields_values(self) -> None:
+        """Regular dict with id-keyed subentry objects is the basic happy path."""
+        sub = self._subentry("s1")
+        entry = SimpleNamespace(subentries={"s1": sub})
+        assert list(iter_config_subentries(entry, "snippet")) == [sub]
+
+    def test_mapping_proxy_type_id_keyed_yields_values(self) -> None:
+        """MappingProxyType is what HA uses in production; must not iterate over keys."""
+        sub = self._subentry("s1")
+        entry = SimpleNamespace(subentries=MappingProxyType({"s1": sub}))
+        result = list(iter_config_subentries(entry, "snippet"))
+        assert result == [sub], (
+            "iter_config_subentries iterated over keys instead of values; "
+            "MappingProxyType must be handled the same as dict"
+        )
+
+    def test_mapping_proxy_type_filters_by_subentry_type(self) -> None:
+        """Type filter is applied correctly when subentries is a MappingProxyType."""
+        snippet_sub = self._subentry("s1", subentry_type="snippet")
+        other_sub = self._subentry("s2", subentry_type="other")
+        entry = SimpleNamespace(
+            subentries=MappingProxyType({"s1": snippet_sub, "s2": other_sub})
+        )
+        assert list(iter_config_subentries(entry, "snippet")) == [snippet_sub]
+
+    def test_mapping_proxy_type_no_filter_yields_all(self) -> None:
+        """Passing subentry_type=None with a MappingProxyType yields all subentries."""
+        sub1 = self._subentry("s1")
+        sub2 = self._subentry("s2", subentry_type="other")
+        entry = SimpleNamespace(subentries=MappingProxyType({"s1": sub1, "s2": sub2}))
+        result = list(iter_config_subentries(entry, None))
+        assert len(result) == 2
+        assert sub1 in result
+        assert sub2 in result
+
+    def test_empty_mapping_proxy_yields_nothing(self) -> None:
+        entry = SimpleNamespace(subentries=MappingProxyType({}))
+        assert list(iter_config_subentries(entry, "snippet")) == []
+
+    def test_missing_subentries_attribute_yields_nothing(self) -> None:
+        entry = SimpleNamespace()
+        assert list(iter_config_subentries(entry, "snippet")) == []
