@@ -158,6 +158,9 @@ def test_coordinator_preview_promotes_sorted_alerts_to_briefing_result() -> None
         def __init__(self, snippet: SnippetResult) -> None:
             self._snippet = snippet
 
+        def prepare_collect_config(self, config: dict, runtime_ctx: dict) -> dict:
+            return config
+
         async def async_collect(self, provider_config: dict[str, str]) -> dict[str, str]:
             return provider_config
 

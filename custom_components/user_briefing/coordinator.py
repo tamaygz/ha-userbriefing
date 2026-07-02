@@ -79,11 +79,7 @@ class UserBriefingCoordinator:
         return await self._async_build_result(subentry_ids=subentry_ids, persist=False)
 
     async def async_generate(self, subentry_ids: set[str] | None = None) -> BriefingResult:
-        """Generate a briefing.
-
-        The scaffold returns an empty normalized result until providers and subentry
-        storage are wired.
-        """
+        """Generate a full briefing and persist the result to coordinator state."""
         return await self._async_build_result(subentry_ids=subentry_ids, persist=True)
 
     async def _async_build_result(
@@ -136,8 +132,13 @@ class UserBriefingCoordinator:
             try:
                 provider = create_provider(self.hass, provider_key)
                 collect_config = dict(provider_config)
-                if provider_key == "custom_text" and subentry_id in self.slot_store:
-                    collect_config["_slot_entry"] = self.slot_store[subentry_id]
+                collect_config = provider.prepare_collect_config(
+                    collect_config,
+                    {
+                        "subentry_id": subentry_id or "",
+                        "slot_store": self.slot_store,
+                    },
+                )
                 payload = await provider.async_collect(collect_config)
                 snippet = provider.normalize(payload, subentry_id or provider_key)
                 snippet.priority = subentry_options.get(CONF_PRIORITY, snippet.priority)
@@ -145,7 +146,7 @@ class UserBriefingCoordinator:
                 snippets.append(snippet)
                 alerts.extend(snippet.alerts)
             except Exception as err:
-                _LOGGER.exception("Provider %s failed during scaffold generation: %s", provider_key, err)
+                _LOGGER.exception("Provider %s failed during generation: %s", provider_key, err)
 
         result = BriefingResult(
             user_key=self.entry.data.get("user_key", self.entry.entry_id),

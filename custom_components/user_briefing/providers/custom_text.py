@@ -119,6 +119,25 @@ class CustomTextProvider(BriefingProvider):
     def validate_reconfigure_config(self, user_input: dict[str, Any]) -> dict[str, Any]:
         return self.validate_config(user_input)
 
+    def prepare_collect_config(
+        self,
+        config: dict[str, Any],
+        runtime_ctx: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Inject slot entry from the coordinator's runtime context.
+
+        For slot-mode instances the coordinator passes its ``slot_store`` dict
+        and the current ``subentry_id`` through ``runtime_ctx`` so that
+        ``async_collect`` can read the live slot value without requiring any
+        provider-specific logic in the core orchestration layer.
+        """
+        slot_store = runtime_ctx.get("slot_store", {})
+        subentry_id = runtime_ctx.get("subentry_id", "")
+        if subentry_id and subentry_id in slot_store:
+            config = dict(config)
+            config["_slot_entry"] = slot_store[subentry_id]
+        return config
+
     def get_adapter(self) -> ProviderAdapter | None:
         return None
 

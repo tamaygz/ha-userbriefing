@@ -282,17 +282,25 @@ Preferred GitHub issue update content:
 
 ## What Is Still Stubbed
 
-These areas are scaffolded but not fully implemented yet:
+The following areas are intentionally incomplete in the current codebase:
 
-- real provider collection and normalization logic (adapter primitives exist; providers still return stub content)
-- alert promotion and ordering in the composer (the `AlertItem` model exists; promotion is not wired)
-- rich phrase-bank rendering
-- full subentry-driven entity lifecycle beyond the initial scaffold
-- dashboard fragment composition into finished user dashboards
-- notification payload helpers and delivery routing
-- complete Home Assistant behavior tests
+- **stub providers** — `home_status`, `news_headlines`, `beach_conditions`, `wind_conditions`, and `mail_summary_stub` still inherit `StubBriefingProvider` and return scaffold text rather than real collected data.
+- **notification delivery** — the `deliver` service and the Deliver button confirm payload readiness and log a summary but never call a real `notify`, `mobile_app`, or TTS service. Delivery routing is planned for a future release.
+- **voice channel** — `DELIVERY_TARGET_VOICE_FUTURE` exists as a constant and selector option but has no backing implementation.
 
-If you are implementing one of these, update both the code and the relevant spec/docs so future agents do not inherit stale guidance.
+These areas are implemented and should no longer be described as stubbed:
+
+- real provider collection (calendar, weather, task-summary, compliment, custom_text)
+- alert emission, severity ordering, and promotion above snippet text in rendering
+- phrase-bank rendering with per-scenario variation
+- subentry-driven entity lifecycle (add/update/remove without reload)
+- dashboard fragment composition and per-user dashboard template generation
+- notification payload helpers (`notification.py`)
+- comprehensive Home Assistant behavior tests (167 passing)
+- `push_snippet` / `clear_snippet` services with TTL expiry pruning
+- bundled automation blueprints for push/clear workflows
+
+If you are implementing one of the still-stubbed areas, update both the code and the relevant spec/docs so future agents do not inherit stale guidance.
 
 ## Ignore / Non-Source Files
 
