@@ -30,6 +30,7 @@ def list_provider_metadata() -> list[ProviderMetadata]:
 
 def create_provider(hass: HomeAssistant, provider_key: str) -> BriefingProvider:
     """Instantiate a registered provider."""
+    ensure_builtin_providers_loaded()
     provider_cls = _REGISTRY[provider_key]
     return provider_cls(hass)
 
@@ -43,6 +44,7 @@ def ensure_builtin_providers_loaded() -> None:
     from . import beach_conditions  # noqa: F401
     from . import calendar  # noqa: F401
     from . import compliment  # noqa: F401
+    from . import custom_text  # noqa: F401
     from . import home_status  # noqa: F401
     from . import mail_summary_stub  # noqa: F401
     from . import news_headlines  # noqa: F401

@@ -20,7 +20,8 @@ from .const import (
     SUBENTRY_TYPE_SNIPPET,
 )
 from .dashboard import build_dashboard_delivery_payload
-from .models import ALERT_SEVERITY_ORDER, AlertItem, BriefingResult
+from .models import ALERT_SEVERITY_ORDER, AlertItem, BriefingResult, SlotEntry
+from .notification import build_notification_payload
 from .providers.registry import create_provider, ensure_builtin_providers_loaded
 from .rendering import render_briefing_text
 from .subentries import get_config_subentry_data, get_config_subentry_options, iter_config_subentries
@@ -46,6 +47,7 @@ class UserBriefingCoordinator:
         self.hass = hass
         self.entry = entry
         self.last_result: BriefingResult | None = None
+        self.slot_store: dict[str, SlotEntry] = {}
         self._listeners: list[Callable[[], None]] = []
 
     def async_add_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
@@ -92,6 +94,16 @@ class UserBriefingCoordinator:
         """Build a briefing result from configured snippet subentries."""
         ensure_builtin_providers_loaded()
 
+        # Prune expired slot entries before dispatching to providers.
+        now = datetime.now(tz=timezone.utc)
+        expired = [
+            sid
+            for sid, entry in self.slot_store.items()
+            if entry.expires_at is not None and entry.expires_at <= now
+        ]
+        for sid in expired:
+            del self.slot_store[sid]
+
         snippets_with_order: list[tuple[int, str, object, dict[str, object]]] = []
         for subentry in iter_config_subentries(self.entry, SUBENTRY_TYPE_SNIPPET):
             subentry_id = getattr(subentry, "subentry_id", None)
@@ -123,7 +135,10 @@ class UserBriefingCoordinator:
 
             provider = create_provider(self.hass, provider_key)
             try:
-                payload = await provider.async_collect(provider_config)
+                collect_config = dict(provider_config)
+                if provider_key == "custom_text" and subentry_id in self.slot_store:
+                    collect_config["_slot_entry"] = self.slot_store[subentry_id]
+                payload = await provider.async_collect(collect_config)
                 snippet = provider.normalize(payload, subentry_id or provider_key)
                 snippet.priority = subentry_options.get(CONF_PRIORITY, snippet.priority)
                 snippet.title = subentry_options.get(CONF_TITLE_OVERRIDE) or snippet.title
@@ -148,6 +163,13 @@ class UserBriefingCoordinator:
             )
         except Exception as err:  # pragma: no cover - defensive scaffolding
             _LOGGER.exception("Dashboard composition failed: %s", err)
+        try:
+            result.delivery_payloads["notification"] = build_notification_payload(
+                self.entry,
+                result,
+            )
+        except Exception as err:  # pragma: no cover - defensive scaffolding
+            _LOGGER.exception("Notification payload build failed: %s", err)
         if persist:
             self.last_result = result
             self._notify_listeners()
