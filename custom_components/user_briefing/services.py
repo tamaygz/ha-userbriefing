@@ -67,7 +67,22 @@ async def async_register_services(hass: HomeAssistant) -> None:
         }
 
     async def _handle_deliver(call: ServiceCall) -> None:
-        _LOGGER.debug("Deliver called with %s", call.data)
+        coordinator = _resolve_coordinator(hass, call)
+        if coordinator is None:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_config_entry_id",
+            )
+        result = coordinator.last_result
+        if result is None:
+            result = await coordinator.async_preview()
+        notification_payload = result.delivery_payloads.get("notification")
+        _LOGGER.debug(
+            "Deliver called for %s — notification payload ready: %s; "
+            "actual delivery is stubbed pending a target channel",
+            call.data.get(CONF_CONFIG_ENTRY_ID),
+            notification_payload is not None,
+        )
 
     async def _handle_refresh_snippet(call: ServiceCall) -> None:
         coordinator = _resolve_coordinator(hass, call)

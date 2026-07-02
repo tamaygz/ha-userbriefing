@@ -21,6 +21,7 @@ from .const import (
 )
 from .dashboard import build_dashboard_delivery_payload
 from .models import BriefingResult
+from .notification import build_notification_payload
 from .providers.registry import create_provider, ensure_builtin_providers_loaded
 from .rendering import render_briefing_text
 from .subentries import get_config_subentry_data, get_config_subentry_options, iter_config_subentries
@@ -134,6 +135,13 @@ class UserBriefingCoordinator:
             )
         except Exception as err:  # pragma: no cover - defensive scaffolding
             _LOGGER.exception("Dashboard composition failed: %s", err)
+        try:
+            result.delivery_payloads["notification"] = build_notification_payload(
+                self.entry,
+                result,
+            )
+        except Exception as err:  # pragma: no cover - defensive scaffolding
+            _LOGGER.exception("Notification payload build failed: %s", err)
         if persist:
             self.last_result = result
             self._notify_listeners()
