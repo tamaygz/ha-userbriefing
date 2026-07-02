@@ -75,7 +75,8 @@ def _build_focus_sentence(forecast_items: list[dict]) -> str | None:
     if isinstance(precipitation_probability, float) and precipitation_probability.is_integer():
         precipitation_probability = int(precipitation_probability)
     if isinstance(precipitation_probability, (int, float)) and precipitation_probability >= 70:
-        return f"Rain is likely today ({precipitation_probability}%)."
+        precip_label = "Rain" if "rain" in normalized_condition else "Snow" if "snow" in normalized_condition else "Precipitation"
+        return f"{precip_label} is likely today ({precipitation_probability}%)."
 
     return None
 
