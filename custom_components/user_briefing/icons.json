@@ -22,5 +22,15 @@
     "refresh_snippet": {
       "service": "mdi:refresh"
     }
+  },
+  "entity": {
+    "button": {
+      "generate": {
+        "default": "mdi:play-circle-outline"
+      },
+      "deliver": {
+        "default": "mdi:send-outline"
+      }
+    }
   }
 }

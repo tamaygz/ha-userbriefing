@@ -246,5 +246,15 @@
     "unknown_config_entry_id": {
       "message": "The provided config_entry_id does not match any loaded User Briefing profile. Use the config entry selector to choose a valid profile."
     }
+  },
+  "entity": {
+    "button": {
+      "generate": {
+        "name": "Generate Briefing"
+      },
+      "deliver": {
+        "name": "Deliver Briefing"
+      }
+    }
   }
 }

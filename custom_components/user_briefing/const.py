@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "user_briefing"
-PLATFORMS: Final = ("sensor",)
+PLATFORMS: Final = ("sensor", "button")
 
 CONF_USER_KEY: Final = "user_key"
 CONF_DISPLAY_NAME: Final = "display_name"

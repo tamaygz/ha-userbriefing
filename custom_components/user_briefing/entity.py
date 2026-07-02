@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity import DeviceInfo, Entity
 
-from .const import ATTR_SNIPPET_COUNT, ATTR_SUMMARY_STATE
+from .const import ATTR_SNIPPET_COUNT, ATTR_SUMMARY_STATE, DOMAIN
 from .models import BriefingResult
 from .coordinator import UserBriefingCoordinator
 
@@ -18,6 +18,16 @@ class UserBriefingEntity(Entity):
 
     def __init__(self, coordinator: UserBriefingCoordinator) -> None:
         self.coordinator = coordinator
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info linking this entity to its briefing profile device."""
+        entry = self.coordinator.entry
+        return DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=entry.title,
+            manufacturer="User Briefing",
+        )
 
     def set_briefing_result(self, briefing_result: BriefingResult) -> None:
         """Update the entity's current briefing result."""
