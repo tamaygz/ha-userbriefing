@@ -24,7 +24,7 @@ If interpolation fails the renderer falls back gracefully to the pre-computed
 
 ## Scenario selection
 
-The renderer picks a template deterministically using an MD5 hash of
+The renderer picks a template deterministically using a SHA-256 hash of
 `"{instance_id}:{scenario}"` modulo the number of available templates.  The same
 snippet instance always receives the same wording, but different instances rotate
 through the available options, giving variety across a multi-snippet briefing.
