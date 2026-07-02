@@ -78,10 +78,8 @@ def build_notification_payload(
 def _collect_alerts(briefing: BriefingResult) -> list[AlertItem]:
     """Return a deduplicated, severity-ordered list of active alerts."""
     alerts: list[AlertItem] = list(briefing.alerts)
-    if not alerts:
-        for snippet in briefing.snippets:
-            alerts.extend(snippet.alerts)
-
+    for snippet in briefing.snippets:
+        alerts.extend(snippet.alerts)
     seen: set[tuple[str, str]] = set()
     deduped: list[AlertItem] = []
     for alert in alerts:
