@@ -1,0 +1,14 @@
+scenarios:
+  forecast_ready:
+    - "Forecast: {summary}."
+    - "Today's weather: {summary}."
+    - "Weather update: {summary}."
+    - "Outside today — {summary}."
+  empty:
+    - "No weather forecast is available right now."
+    - "Weather data isn't in yet — check back soon."
+    - "Forecast is still loading. Dress for uncertainty."
+  error:
+    - "Weather forecast data is unavailable right now."
+    - "Can't reach the weather service right now."
+    - "Weather data took the day off. Try again shortly."

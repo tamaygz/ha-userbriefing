@@ -28,5 +28,5 @@
 - [x] [Add flow behavior tests for post-create subentry chaining, duplicate-source prevention, singleton providers, and provider-driven reconfigure.](https://github.com/tamaygz/ha-userbriefing/issues/23)
 - [x] [Add coordinator tests for respecting `enabled`, `order`, `priority`, partial provider failure, and preview non-mutation.](https://github.com/tamaygz/ha-userbriefing/issues/24)
 - [ ] [Add coordinator and rendering tests for alert severity ordering and alert promotion above normal content.](https://github.com/tamaygz/ha-userbriefing/issues/25)
-- [ ] [Replace placeholder phrase assets with real per-provider scenario banks and add rendering tests for scenario selection.](https://github.com/tamaygz/ha-userbriefing/issues/26)
+- [x] [Replace placeholder phrase assets with real per-provider scenario banks and add rendering tests for scenario selection.](https://github.com/tamaygz/ha-userbriefing/issues/26)
 - [ ] [Add custom_text provider and push_snippet service so automations can inject any content into the briefing (automation-driven "anything adapter" with bundled blueprints).](https://github.com/tamaygz/ha-userbriefing/issues/34)

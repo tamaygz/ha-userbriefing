@@ -1,0 +1,15 @@
+scenarios:
+  tasks_ready:
+    - "Open tasks: {task_list}."
+    - "On your task list: {task_list}."
+    - "Tasks waiting for you: {task_list}."
+    - "Don't forget: {task_list}."
+  empty:
+    - "You have no open tasks right now."
+    - "Task list is clear — well done."
+    - "Nothing outstanding. You're on top of things."
+    - "All caught up. Nice work."
+  error:
+    - "Task data is unavailable right now."
+    - "Can't reach your task list at the moment."
+    - "Your to-do list is hiding. Try again shortly."

@@ -130,7 +130,7 @@ class TaskSummaryProvider(StubBriefingProvider):
                 title=self.describe().name,
                 text="Task data is unavailable right now.",
                 scenario="error",
-                data={"items": []},
+                data={"items": [], "task_count": 0},
                 meta={"source_ref": source_ref},
             )
 
@@ -143,22 +143,23 @@ class TaskSummaryProvider(StubBriefingProvider):
                 title=self.describe().name,
                 text="You have no open tasks right now.",
                 scenario="empty",
-                data={"items": open_items},
+                data={"items": open_items, "task_count": 0},
                 meta={"source_ref": source_ref},
             )
 
         summaries = [str(item.get("summary") or "Untitled task") for item in visible_items]
         extra_count = max(0, len(open_items) - len(visible_items))
         extra_suffix = f" and {extra_count} more" if extra_count else ""
+        task_list = "; ".join(summaries) + extra_suffix
         return SnippetResult(
             provider_key=self.describe().key,
             instance_id=instance_id,
             status="ok",
             priority="optional",
             title=self.describe().name,
-            text=f"Open tasks: {'; '.join(summaries)}{extra_suffix}.",
+            text=f"Open tasks: {task_list}.",
             scenario="tasks_ready",
-            data={"items": open_items},
+            data={"items": open_items, "task_list": task_list, "task_count": len(open_items)},
             meta={"source_ref": source_ref},
             alerts=_build_alerts(
                 open_items,
