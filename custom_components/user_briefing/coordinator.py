@@ -35,7 +35,7 @@ def _sort_alerts(alerts: list[AlertItem]) -> list[AlertItem]:
     }
     return sorted(
         alerts,
-        key=lambda alert: severity_order.get(alert.severity, len(severity_order)),
+        key=lambda alert: severity_order.get(alert.severity.lower(), len(severity_order)),
     )
 
 
