@@ -295,7 +295,7 @@
         },
         "custom_text_confirm": {
           "title": "Slot ready",
-          "description": "Your custom text slot has been created. Copy the **Snippet slot ID** below and paste it into the push_snippet service call or automation blueprint.\n\nSnippet slot ID: `{subentry_id}`"
+          "description": "Your custom text slot has been created. After saving, copy the **Snippet slot ID** from the integration settings subentry list and paste it into the push_snippet service call or automation blueprint."
         }
       },
       "abort": {
