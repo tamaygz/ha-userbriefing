@@ -39,7 +39,7 @@ def _select_phrase(phrases: list[str], instance_id: str, scenario: str) -> str:
     the available options so users see variety across snippets.
     """
     key = f"{instance_id}:{scenario}".encode()
-    index = int(hashlib.md5(key).hexdigest(), 16) % len(phrases)
+    index = int(hashlib.sha256(key).hexdigest(), 16) % len(phrases)
     return phrases[index]
 
 
