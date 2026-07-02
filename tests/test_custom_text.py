@@ -4,11 +4,11 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from custom_components.user_briefing.models import BriefingResult, SlotEntry
+from custom_components.user_briefing.models import SlotEntry
 from custom_components.user_briefing.providers.custom_text import CustomTextProvider
 
 
