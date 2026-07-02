@@ -193,7 +193,7 @@
         },
         "severity": {
           "name": "Severity",
-          "description": "Promote to the alert block by setting warning or critical."
+          "description": "Promote to the alert block by setting info, warning, or critical."
         },
         "expires_in_hours": {
           "name": "Auto-clear after (hours)",
@@ -238,13 +238,15 @@
             "source_ref": "Source reference",
             "summary_limit": "Summary limit",
             "slot_label": "Slot label",
-            "mode": "Mode"
+            "mode": "Mode",
+            "default_text": "Default text (slot mode)"
           },
           "data_description": {
             "source_ref": "Choose the entity or integration reference this snippet should read from.",
             "summary_limit": "Maximum number of items to summarize when this provider supports limiting results.",
             "slot_label": "Optional human-readable label shown in the subentry list.",
-            "mode": "Choose push-service mode to inject content via automations, or entity-watcher mode to read from a Home Assistant entity."
+            "mode": "Choose push-service mode to inject content via automations, or entity-watcher mode to read from a Home Assistant entity.",
+            "default_text": "Optional fallback text shown when the slot is empty. Leave blank to skip the snippet when no content has been pushed."
           }
         },
         "common": {

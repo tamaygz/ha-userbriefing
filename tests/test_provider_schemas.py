@@ -112,6 +112,7 @@ def test_snippet_flow_strings_describe_provider_and_reconfigure_fields() -> None
         "summary_limit",
         "slot_label",
         "mode",
+        "default_text",
     }
     assert set(snippet_steps["common"]["data_description"]) == {
         "enabled",

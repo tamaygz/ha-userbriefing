@@ -55,6 +55,9 @@ class CustomTextProvider(BriefingProvider):
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
+                vol.Optional(CONF_CUSTOM_TEXT_DEFAULT_TEXT, default=""): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
             }
         )
 
@@ -68,19 +71,40 @@ class CustomTextProvider(BriefingProvider):
             }
         )
 
-    def build_options_schema(self) -> vol.Schema | None:
-        return vol.Schema(
-            {
-                vol.Optional(CONF_CUSTOM_TEXT_DEFAULT_TEXT, default=""): selector.TextSelector(
-                    selector.TextSelectorConfig(multiline=True)
-                ),
-            }
-        )
+    def build_reconfigure_schema(
+        self,
+        existing_data: dict[str, Any],
+        existing_options: dict[str, Any],
+    ) -> vol.Schema:
+        """Return reconfigure schema with default_text for slot mode."""
+        mode = existing_data.get(CONF_CUSTOM_TEXT_MODE, CUSTOM_TEXT_MODE_SLOT)
+        schema_dict: dict = {
+            vol.Optional(CONF_CUSTOM_TEXT_SLOT_LABEL, default=""): selector.TextSelector(),
+            vol.Required(CONF_CUSTOM_TEXT_MODE, default=mode): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=CUSTOM_TEXT_MODE_SLOT, label="Push service (automation-driven)"),
+                        selector.SelectOptionDict(value=CUSTOM_TEXT_MODE_ENTITY, label="Entity watcher"),
+                    ],
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+        }
+        if mode == CUSTOM_TEXT_MODE_ENTITY:
+            schema_dict[vol.Required(CONF_SOURCE_REF)] = selector.EntitySelector(
+                selector.EntitySelectorConfig(domain=_ENTITY_DOMAINS)
+            )
+        if mode == CUSTOM_TEXT_MODE_SLOT:
+            schema_dict[vol.Optional(CONF_CUSTOM_TEXT_DEFAULT_TEXT, default="")] = selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            )
+        return vol.Schema(schema_dict)
 
     def validate_config(self, user_input: dict[str, Any]) -> dict[str, Any]:
         config: dict[str, Any] = {
             CONF_CUSTOM_TEXT_MODE: user_input.get(CONF_CUSTOM_TEXT_MODE, CUSTOM_TEXT_MODE_SLOT),
             CONF_CUSTOM_TEXT_SLOT_LABEL: user_input.get(CONF_CUSTOM_TEXT_SLOT_LABEL, ""),
+            CONF_CUSTOM_TEXT_DEFAULT_TEXT: user_input.get(CONF_CUSTOM_TEXT_DEFAULT_TEXT, ""),
         }
         source_ref = user_input.get(CONF_SOURCE_REF)
         if source_ref:

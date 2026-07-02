@@ -88,7 +88,7 @@ push_snippet:
     severity:
       name: Severity
       description: >
-        Set to warning or critical to promote this snippet to the alert block
+        Set to info, warning, or critical to promote this snippet to the alert block
         at the top of the briefing. Leave blank for a normal snippet.
       required: false
       selector:

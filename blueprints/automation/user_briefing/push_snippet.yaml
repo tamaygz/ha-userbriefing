@@ -74,11 +74,22 @@ blueprint:
 trigger: []
 
 action:
-  - action: user_briefing.push_snippet
-    data:
-      config_entry_id: !input config_entry_id
-      subentry_id: !input subentry_id
-      text: !input text
-      title: !input title
-      severity: !input severity
-      expires_in_hours: !input expires_in_hours
+  - choose:
+      - conditions: "{{ severity != '' }}"
+        sequence:
+          - action: user_briefing.push_snippet
+            data:
+              config_entry_id: !input config_entry_id
+              subentry_id: !input subentry_id
+              text: !input text
+              title: !input title
+              severity: !input severity
+              expires_in_hours: !input expires_in_hours
+    default:
+      - action: user_briefing.push_snippet
+        data:
+          config_entry_id: !input config_entry_id
+          subentry_id: !input subentry_id
+          text: !input text
+          title: !input title
+          expires_in_hours: !input expires_in_hours

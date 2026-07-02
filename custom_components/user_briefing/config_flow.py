@@ -38,7 +38,6 @@ except ImportError:  # pragma: no cover - compatibility for older local test env
 
 from .const import (
     CONF_CUSTOM_TEXT_MODE,
-    CONF_CUSTOM_TEXT_SLOT_LABEL,
     CONF_DASHBOARD_PATH,
     CONF_DASHBOARD_TEMPLATE,
     CONF_DEFAULT_DELIVERY_MODE,
@@ -552,17 +551,13 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
         self,
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
-        """Confirm slot creation and show subentry_id for copy-paste."""
+        """Confirm slot creation and direct user to copy the ID after saving."""
         if user_input is not None:
             return await self.async_step_common()
 
-        # The subentry_id isn't assigned yet (it comes from async_create_entry),
-        # so we show a placeholder that the user can find in developer tools.
-        # After the entry is created the subentry_id is visible in the UI.
         return self.async_show_form(
             step_id="custom_text_confirm",
             data_schema=vol.Schema({}),
-            description_placeholders={"subentry_id": "— assigned on save —"},
         )
 
     async def async_step_common(
