@@ -2,14 +2,63 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+from typing import Any
+
+import yaml
+
 from .models import ALERT_SEVERITY_ORDER, AlertItem, BriefingResult, SnippetResult
+
+_PHRASES_DIR = Path(__file__).parent / "phrases"
+
+# Cache of loaded phrase banks keyed by provider_key.
+# A missing key means the bank has not been loaded yet.
+# A key mapping to an empty dict means no phrase bank file exists for that provider.
+_PHRASE_BANK_CACHE: dict[str, dict[str, list[str]]] = {}
+
+
+def _load_phrase_bank(provider_key: str) -> dict[str, list[str]]:
+    """Return the scenario→phrases mapping for *provider_key*, loading it once."""
+    if provider_key not in _PHRASE_BANK_CACHE:
+        path = _PHRASES_DIR / f"{provider_key}.yaml"
+        if path.is_file():
+            with path.open(encoding="utf-8") as fh:
+                raw: Any = yaml.safe_load(fh) or {}
+            _PHRASE_BANK_CACHE[provider_key] = raw.get("scenarios", {})
+        else:
+            _PHRASE_BANK_CACHE[provider_key] = {}
+    return _PHRASE_BANK_CACHE[provider_key]
+
+
+def _select_phrase(phrases: list[str], instance_id: str, scenario: str) -> str:
+    """Select a phrase deterministically from *phrases*.
+
+    The selection is stable across runs: the same *instance_id* and *scenario*
+    always produce the same phrase template, but distinct instances rotate through
+    the available options so users see variety across snippets.
+    """
+    key = f"{instance_id}:{scenario}".encode()
+    index = int(hashlib.md5(key).hexdigest(), 16) % len(phrases)
+    return phrases[index]
 
 
 def render_snippet_text(snippet: SnippetResult) -> str:
-    """Return the snippet text.
+    """Return the rendered snippet text.
 
-    The scaffold keeps rendering intentionally simple until phrase assets are wired.
+    Phrase banks are consulted first. If a bank entry exists for the snippet's
+    provider and scenario the selected template is interpolated with the snippet's
+    data dict. Missing or broken interpolation falls back to the pre-computed
+    ``snippet.text``.
     """
+    bank = _load_phrase_bank(snippet.provider_key)
+    scenario_phrases = bank.get(snippet.scenario, [])
+    if scenario_phrases:
+        template = _select_phrase(scenario_phrases, snippet.instance_id, snippet.scenario)
+        try:
+            return template.format_map(snippet.data).strip()
+        except (KeyError, ValueError):
+            pass
     return snippet.text.strip()
 
 

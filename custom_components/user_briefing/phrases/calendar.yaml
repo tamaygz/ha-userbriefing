@@ -1,0 +1,15 @@
+scenarios:
+  upcoming_events:
+    - "Upcoming events: {event_list}."
+    - "Today's schedule: {event_list}."
+    - "On your calendar: {event_list}."
+    - "Heads up, you have {event_count} event(s) today: {event_list}."
+  empty:
+    - "No upcoming calendar events in the next 24 hours."
+    - "Your schedule looks clear today."
+    - "Nothing on the calendar right now. Enjoy the open time."
+    - "Free as a bird — nothing scheduled in the next 24 hours."
+  error:
+    - "Calendar data is unavailable right now."
+    - "Can't reach your calendar at the moment."
+    - "Your calendar is taking a coffee break. Try again later."

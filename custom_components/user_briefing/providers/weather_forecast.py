@@ -143,15 +143,16 @@ class WeatherForecastProvider(StubBriefingProvider):
             )
 
         segments = [_describe_forecast(item) for item in visible_forecast]
+        summary = "; ".join(segments)
         return SnippetResult(
             provider_key=self.describe().key,
             instance_id=instance_id,
             status="ok",
             priority="optional",
             title=self.describe().name,
-            text=f"Forecast: {'; '.join(segments)}.",
+            text=f"Forecast: {summary}.",
             scenario="forecast_ready",
-            data={"forecast": forecast_items},
+            data={"forecast": forecast_items, "summary": summary},
             meta={"source_ref": source_ref},
             alerts=_build_alerts(
                 forecast_items,
