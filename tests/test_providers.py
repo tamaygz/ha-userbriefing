@@ -67,7 +67,8 @@ def test_weather_provider_collects_and_normalizes_forecast() -> None:
     assert services.calls[0][0:2] == ("weather", "get_forecasts")
     assert services.calls[0][2]["type"] == "daily"
     assert snippet.status == "ok"
-    assert snippet.text == "Forecast: sunny, high 25°, low 18°."
+    assert snippet.text == "Today looks sunny with a high of 25° and a low of 18°."
+    assert snippet.data["summary"] == snippet.text
 
 
 def test_weather_provider_emits_alert_for_severe_conditions() -> None:
@@ -89,7 +90,35 @@ def test_weather_provider_emits_alert_for_severe_conditions() -> None:
 
     assert snippet.alerts
     assert snippet.alerts[0].severity == "warning"
+    assert snippet.alerts[0].source_label == "weather.home"
     assert "lightning" in snippet.alerts[0].text
+
+
+def test_weather_provider_focuses_text_on_high_rain_chance() -> None:
+    provider = WeatherForecastProvider(SimpleNamespace(services=_FakeServices({})))
+
+    snippet = provider.normalize(
+        {
+            "available": True,
+            "source_ref": "weather.home",
+            "summary_limit": 2,
+            "response": {
+                "weather.home": {
+                    "forecast": [
+                        {"condition": "rainy", "temperature": 19, "templow": 14, "precipitation_probability": 80},
+                        {"condition": "cloudy", "temperature": 21, "templow": 15},
+                    ]
+                }
+            },
+        },
+        "weather-1",
+    )
+
+    assert snippet.text == (
+        "Today looks rainy with a high of 19° and a low of 14°. "
+        "Tomorrow looks cloudy with a high of 21° and a low of 15°. "
+        "Rain is likely today (80%)."
+    )
 
 
 def test_task_summary_provider_collects_and_filters_open_tasks() -> None:
