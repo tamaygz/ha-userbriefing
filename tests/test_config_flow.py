@@ -54,19 +54,20 @@ def test_subentry_flow_create_entry_falls_back_when_options_are_unsupported() ->
     }
 
 
-def test_subentry_flow_update_entry_falls_back_when_options_updates_are_unsupported() -> None:
+def test_subentry_flow_update_entry_passes_correct_positional_args() -> None:
+    """Update path: entry and subentry passed as positional args, data merged into data_updates."""
     flow = BriefingSnippetSubentryFlow()
-    calls: list[dict[str, object]] = []
+    calls: list[tuple[tuple, dict]] = []
+    parent_entry = SimpleNamespace(subentries={})
     config_subentry = SimpleNamespace(
         subentry_id="snippet-1",
         data={"provider_key": "calendar", "source_ref": "calendar.work"},
     )
 
-    def fake_async_update_and_abort(subentry, **kwargs):
-        del subentry
-        calls.append(kwargs)
-        if "options_updates" in kwargs:
-            raise TypeError("ConfigSubentryFlow.async_update_and_abort() got an unexpected keyword argument 'options_updates'")
+    flow._get_parent_entry = lambda: parent_entry  # type: ignore[method-assign]
+
+    def fake_async_update_and_abort(*args, **kwargs):
+        calls.append((args, kwargs))
         return kwargs
 
     flow.async_update_and_abort = fake_async_update_and_abort  # type: ignore[method-assign]
@@ -78,10 +79,12 @@ def test_subentry_flow_update_entry_falls_back_when_options_updates_are_unsuppor
         {"enabled": True, "order": 10, "priority": "optional", "title_override": None},
     )
 
-    assert len(calls) == 2
-    assert "options_updates" in calls[0]
-    assert result["data_updates"]["provider_key"] == "calendar"  # explicitly preserved
-    assert result["data_updates"] == {
+    assert len(calls) == 1
+    positional_args, kwargs = calls[0]
+    assert positional_args == (parent_entry, config_subentry)
+    assert kwargs["title"] == "Calendar"
+    assert kwargs["data_updates"]["provider_key"] == "calendar"  # explicitly preserved
+    assert kwargs["data_updates"] == {
         "provider_key": "calendar",
         "source_ref": "calendar.work",
         "enabled": True,
@@ -140,8 +143,11 @@ def test_update_subentry_entry_reraises_unrelated_type_error() -> None:
 
     flow = BriefingSnippetSubentryFlow()
     subentry = SimpleNamespace(subentry_id="snippet-1", data={})
+    parent_entry = SimpleNamespace(subentries={})
 
-    def always_raise(sub, **kwargs):
+    flow._get_parent_entry = lambda: parent_entry  # type: ignore[method-assign]
+
+    def always_raise(*args, **kwargs):
         raise TypeError("unexpected keyword argument 'title_template'")
 
     flow.async_update_and_abort = always_raise  # type: ignore[method-assign]

@@ -385,27 +385,18 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
         provider_updates: dict[str, Any],
         common_settings: dict[str, Any],
     ) -> FlowResult:
-        """Update a snippet subentry across Home Assistant API variants."""
-        try:
-            return self.async_update_and_abort(
-                config_subentry,
-                data_updates=provider_updates,
-                options_updates=common_settings,
-                title=title,
-            )
-        except TypeError as err:
-            if "unexpected keyword argument" not in str(err):
-                raise
-            existing_provider_key = (getattr(config_subentry, "data", {}) or {}).get(CONF_PROVIDER_KEY)
-            return self.async_update_and_abort(
-                config_subentry,
-                data_updates={
-                    CONF_PROVIDER_KEY: existing_provider_key,
-                    **provider_updates,
-                    **common_settings,
-                },
-                title=title,
-            )
+        """Update a snippet subentry."""
+        existing_provider_key = (getattr(config_subentry, "data", {}) or {}).get(CONF_PROVIDER_KEY)
+        return self.async_update_and_abort(
+            self._get_parent_entry(),
+            config_subentry,
+            data_updates={
+                CONF_PROVIDER_KEY: existing_provider_key,
+                **provider_updates,
+                **common_settings,
+            },
+            title=title,
+        )
 
     def _has_singleton_conflict(self, provider_key: str) -> bool:
         """Return whether a provider singleton already exists on the parent entry."""
