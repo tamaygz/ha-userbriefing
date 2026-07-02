@@ -25,7 +25,7 @@
 - [x] [Implement notification payload helpers without enabling full delivery workflows yet.](https://github.com/tamaygz/ha-userbriefing/issues/20)
 - [x] [Add dedicated generated-at and per-snippet status entities, or explicitly revise the architecture/docs if attributes remain the long-term model.](https://github.com/tamaygz/ha-userbriefing/issues/21)
 - [x] [Expand service behavior tests to cover `generate`, `preview` response payloads, `refresh_snippet`, required target semantics, and unknown `config_entry_id` handling.](https://github.com/tamaygz/ha-userbriefing/issues/22)
-- [ ] [Add flow behavior tests for post-create subentry chaining, duplicate-source prevention, singleton providers, and provider-driven reconfigure.](https://github.com/tamaygz/ha-userbriefing/issues/23)
+- [x] [Add flow behavior tests for post-create subentry chaining, duplicate-source prevention, singleton providers, and provider-driven reconfigure.](https://github.com/tamaygz/ha-userbriefing/issues/23)
 - [x] [Add coordinator tests for respecting `enabled`, `order`, `priority`, partial provider failure, and preview non-mutation.](https://github.com/tamaygz/ha-userbriefing/issues/24)
 - [ ] [Add coordinator and rendering tests for alert severity ordering and alert promotion above normal content.](https://github.com/tamaygz/ha-userbriefing/issues/25)
 - [ ] [Replace placeholder phrase assets with real per-provider scenario banks and add rendering tests for scenario selection.](https://github.com/tamaygz/ha-userbriefing/issues/26)
