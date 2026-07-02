@@ -386,22 +386,27 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
         common_settings: dict[str, Any],
     ) -> FlowResult:
         """Update a snippet subentry across Home Assistant API variants."""
+        existing_provider_key = (getattr(config_subentry, "data", {}) or {}).get(CONF_PROVIDER_KEY)
+        data_updates = {
+            CONF_PROVIDER_KEY: existing_provider_key,
+            **provider_updates,
+        }
         try:
             return self.async_update_and_abort(
+                self._get_parent_entry(),
                 config_subentry,
-                data_updates=provider_updates,
+                data_updates=data_updates,
                 options_updates=common_settings,
                 title=title,
             )
         except TypeError as err:
             if "unexpected keyword argument" not in str(err):
                 raise
-            existing_provider_key = (getattr(config_subentry, "data", {}) or {}).get(CONF_PROVIDER_KEY)
             return self.async_update_and_abort(
+                self._get_parent_entry(),
                 config_subentry,
                 data_updates={
-                    CONF_PROVIDER_KEY: existing_provider_key,
-                    **provider_updates,
+                    **data_updates,
                     **common_settings,
                 },
                 title=title,
