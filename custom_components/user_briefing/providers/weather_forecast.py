@@ -46,7 +46,7 @@ def _normalize_condition(value: object) -> str:
 
 
 def _describe_forecast(forecast: dict, index: int) -> str:
-    day_label = "Today" if index == 0 else "Tomorrow" if index == 1 else f"Day {index + 1}"
+    day_label = "Today" if index == 0 else "Tomorrow" if index == 1 else "Later"
     condition = _normalize_condition(forecast.get("condition"))
     high = _format_temperature(forecast.get("temperature"))
     low = _format_temperature(forecast.get("templow"))
