@@ -128,3 +128,131 @@ def test_coordinator_preview_builds_end_to_end_dashboard_payload() -> None:
     assert "title: Briefing Summary" in dashboard_payload["yaml"]
     assert "title: Compliment" in dashboard_payload["yaml"]
     assert "sensor.saved_briefing_status" in dashboard_payload["yaml"]
+
+
+def test_coordinator_preview_promotes_sorted_alerts_to_briefing_result() -> None:
+    entry = SimpleNamespace(
+        entry_id="entry-1",
+        title="Alex",
+        data={"user_key": "alex"},
+        options={"dashboard_template": "compact"},
+        subentries={
+            "snippet-1": SimpleNamespace(
+                subentry_id="snippet-1",
+                subentry_type=SUBENTRY_TYPE_SNIPPET,
+                title="Calendar",
+                data={"provider_key": "calendar"},
+                options={"enabled": True, "order": 1},
+            ),
+            "snippet-2": SimpleNamespace(
+                subentry_id="snippet-2",
+                subentry_type=SUBENTRY_TYPE_SNIPPET,
+                title="Weather",
+                data={"provider_key": "weather_forecast"},
+                options={"enabled": True, "order": 2},
+            ),
+        },
+    )
+
+    class _FakeProvider:
+        def __init__(self, snippet: SnippetResult) -> None:
+            self._snippet = snippet
+
+        async def async_collect(self, provider_config: dict[str, str]) -> dict[str, str]:
+            return provider_config
+
+        def normalize(self, payload: dict[str, str], instance_id: str) -> SnippetResult:
+            return self._snippet
+
+    providers = {
+        "calendar": _FakeProvider(
+            SnippetResult(
+                provider_key="calendar",
+                instance_id="snippet-1",
+                status="ok",
+                priority="required",
+                title="Calendar",
+                text="Calendar body.",
+                scenario="normal",
+                alerts=[
+                    AlertItem(
+                        alert_key="calendar-warning",
+                        provider_key="calendar",
+                        severity="warning",
+                        title="Calendar warning",
+                        text="Leave early for traffic.",
+                        source_label="calendar.work",
+                    ),
+                    AlertItem(
+                        alert_key="calendar-info",
+                        provider_key="calendar",
+                        severity="info",
+                        title="Calendar note",
+                        text="Team lunch is optional.",
+                        source_label="calendar.work",
+                    ),
+                ],
+            )
+        ),
+        "weather_forecast": _FakeProvider(
+            SnippetResult(
+                provider_key="weather_forecast",
+                instance_id="snippet-2",
+                status="ok",
+                priority="optional",
+                title="Weather",
+                text="Weather body.",
+                scenario="normal",
+                alerts=[
+                    AlertItem(
+                        alert_key="weather-critical",
+                        provider_key="weather_forecast",
+                        severity="critical",
+                        title="Weather alert",
+                        text="Hail starts in 15 minutes.",
+                        source_label="weather.home",
+                    ),
+                    AlertItem(
+                        alert_key="weather-warning",
+                        provider_key="weather_forecast",
+                        severity="warning",
+                        title="Weather caution",
+                        text="Wind gusts are increasing.",
+                        source_label="weather.home",
+                    ),
+                ],
+            )
+        ),
+    }
+
+    with (
+        patch(
+            "custom_components.user_briefing.coordinator.ensure_builtin_providers_loaded"
+        ),
+        patch(
+            "custom_components.user_briefing.coordinator.create_provider",
+            side_effect=lambda hass, provider_key: providers[provider_key],
+        ),
+        patch(
+            "custom_components.user_briefing.coordinator.build_dashboard_delivery_payload",
+            return_value={},
+        ),
+    ):
+        result = asyncio.run(
+            UserBriefingCoordinator(SimpleNamespace(), entry).async_preview()
+        )
+
+    assert [alert.alert_key for alert in result.alerts] == [
+        "weather-critical",
+        "calendar-warning",
+        "weather-warning",
+        "calendar-info",
+    ]
+    assert result.rendered_text == (
+        "[CRITICAL] Weather alert: Hail starts in 15 minutes. (weather.home)\n\n"
+        "[WARNING] Calendar warning: Leave early for traffic. (calendar.work)\n\n"
+        "[WARNING] Weather caution: Wind gusts are increasing. (weather.home)\n\n"
+        "[INFO] Calendar note: Team lunch is optional. (calendar.work)\n\n"
+        "Calendar body.\n\n"
+        "Weather body."
+    )

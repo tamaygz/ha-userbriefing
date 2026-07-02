@@ -227,11 +227,7 @@ def _collect_alerts(briefing: BriefingResult) -> list[AlertItem]:
     }
     return sorted(
         alerts,
-        key=lambda alert: (
-            severity_order.get(alert.severity, len(severity_order)),
-            alert.provider_key,
-            alert.alert_key,
-        ),
+        key=lambda alert: severity_order.get(alert.severity.lower(), len(severity_order)),
     )
 
 
