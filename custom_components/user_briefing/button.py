@@ -34,13 +34,12 @@ async def async_setup_entry(
 class UserBriefingGenerateButton(UserBriefingEntity, ButtonEntity):
     """Button that triggers briefing generation and updates entity state."""
 
-    _attr_icon = "mdi:play-circle-outline"
+    _attr_has_entity_name = True
     _attr_translation_key = "generate"
 
     def __init__(self, coordinator: UserBriefingCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_generate"
-        self._attr_name = f"{entry.title} Generate Briefing"
 
     async def async_press(self) -> None:
         """Generate (or regenerate) the briefing and update entity state."""
@@ -50,13 +49,12 @@ class UserBriefingGenerateButton(UserBriefingEntity, ButtonEntity):
 class UserBriefingDeliverButton(UserBriefingEntity, ButtonEntity):
     """Button that triggers briefing delivery (currently stubbed)."""
 
-    _attr_icon = "mdi:send-outline"
+    _attr_has_entity_name = True
     _attr_translation_key = "deliver"
 
     def __init__(self, coordinator: UserBriefingCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_deliver"
-        self._attr_name = f"{entry.title} Deliver Briefing"
 
     async def async_press(self) -> None:
         """Deliver the current briefing (delivery channel is stubbed for now)."""

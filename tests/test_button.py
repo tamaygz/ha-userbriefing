@@ -2,7 +2,6 @@
 
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 from custom_components.user_briefing.button import (
     UserBriefingDeliverButton,
@@ -60,25 +59,25 @@ def test_async_setup_entry_adds_generate_and_deliver_buttons() -> None:
 
 
 def test_generate_button_metadata() -> None:
-    """Generate button should have the expected name and unique_id."""
+    """Generate button should expose translation_key, has_entity_name, and unique_id."""
     entry = _FakeEntry()
     coordinator = _FakeCoordinator()
     button = UserBriefingGenerateButton(coordinator, entry)
 
-    assert button.name == "Alex Generate Briefing"
+    assert button.has_entity_name is True
+    assert button.translation_key == "generate"
     assert button.unique_id == "entry-1_generate"
-    assert button.icon == "mdi:play-circle-outline"
 
 
 def test_deliver_button_metadata() -> None:
-    """Deliver button should have the expected name and unique_id."""
+    """Deliver button should expose translation_key, has_entity_name, and unique_id."""
     entry = _FakeEntry()
     coordinator = _FakeCoordinator()
     button = UserBriefingDeliverButton(coordinator, entry)
 
-    assert button.name == "Alex Deliver Briefing"
+    assert button.has_entity_name is True
+    assert button.translation_key == "deliver"
     assert button.unique_id == "entry-1_deliver"
-    assert button.icon == "mdi:send-outline"
 
 
 def test_generate_button_press_calls_coordinator() -> None:
