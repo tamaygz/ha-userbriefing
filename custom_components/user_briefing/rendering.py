@@ -27,7 +27,7 @@ def _load_phrase_bank(provider_key: str) -> dict[str, list[str]]:
             try:
                 with path.open(encoding="utf-8") as fh:
                     raw: Any = yaml.safe_load(fh) or {}
-            except (OSError, yaml.YAMLError):
+            except (OSError, UnicodeError, yaml.YAMLError):
                 raw = {}
             scenarios = raw.get("scenarios") if isinstance(raw, dict) else {}
             if isinstance(scenarios, dict):
