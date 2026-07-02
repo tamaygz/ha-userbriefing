@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import threading
 from typing import Any
 
 import yaml
@@ -16,28 +17,30 @@ _PHRASES_DIR = Path(__file__).parent / "phrases"
 # A missing key means the bank has not been loaded yet.
 # A key mapping to an empty dict means no phrase bank file exists for that provider.
 _PHRASE_BANK_CACHE: dict[str, dict[str, list[str]]] = {}
+_PHRASE_BANK_CACHE_LOCK = threading.Lock()
 
 
 def _load_phrase_bank(provider_key: str) -> dict[str, list[str]]:
     """Return the scenario→phrases mapping for *provider_key*, loading it once."""
-    if provider_key not in _PHRASE_BANK_CACHE:
-        path = _PHRASES_DIR / f"{provider_key}.yaml"
-        bank: dict[str, list[str]] = {}
-        if path.is_file():
-            try:
-                with path.open(encoding="utf-8") as fh:
-                    raw: Any = yaml.safe_load(fh) or {}
-            except (OSError, UnicodeError, yaml.YAMLError):
-                raw = {}
-            scenarios = raw.get("scenarios") if isinstance(raw, dict) else {}
-            if isinstance(scenarios, dict):
-                for scenario, phrases in scenarios.items():
-                    if isinstance(phrases, str):
-                        bank[str(scenario)] = [phrases]
-                    elif isinstance(phrases, list):
-                        bank[str(scenario)] = [p for p in phrases if isinstance(p, str)]
-        _PHRASE_BANK_CACHE[provider_key] = bank
-    return _PHRASE_BANK_CACHE[provider_key]
+    with _PHRASE_BANK_CACHE_LOCK:
+        if provider_key not in _PHRASE_BANK_CACHE:
+            path = _PHRASES_DIR / f"{provider_key}.yaml"
+            bank: dict[str, list[str]] = {}
+            if path.is_file():
+                try:
+                    with path.open(encoding="utf-8") as fh:
+                        raw: Any = yaml.safe_load(fh) or {}
+                except (OSError, UnicodeError, yaml.YAMLError):
+                    raw = {}
+                scenarios = raw.get("scenarios") if isinstance(raw, dict) else {}
+                if isinstance(scenarios, dict):
+                    for scenario, phrases in scenarios.items():
+                        if isinstance(phrases, str):
+                            bank[str(scenario)] = [phrases]
+                        elif isinstance(phrases, list):
+                            bank[str(scenario)] = [p for p in phrases if isinstance(p, str)]
+            _PHRASE_BANK_CACHE[provider_key] = bank
+        return _PHRASE_BANK_CACHE[provider_key]
 
 
 def _select_phrase(phrases: list[str], instance_id: str, scenario: str) -> str:
