@@ -1,0 +1,28 @@
+blueprint:
+  name: "User Briefing: Clear a custom snippet"
+  description: >
+    Remove the content from a User Briefing custom slot when a trigger fires.
+    Useful for resetting stale content (e.g. clearing a package-tracking note
+    once the parcel arrives).
+  domain: automation
+  author: ha-userbriefing
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    config_entry_id:
+      name: Profile
+      selector:
+        config_entry:
+          integration: user_briefing
+    subentry_id:
+      name: Snippet slot
+      selector:
+        text:
+
+trigger: []
+
+action:
+  - action: user_briefing.clear_snippet
+    data:
+      config_entry_id: !input config_entry_id
+      subentry_id: !input subentry_id

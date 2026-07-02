@@ -35,6 +35,12 @@ SNIPPET_COMMON_SETTING_KEYS: tuple[str, ...] = (
 
 CONF_CONFIG_ENTRY_ID: Final = "config_entry_id"
 CONF_SUBENTRY_ID: Final = "subentry_id"
+CONF_CUSTOM_TEXT_MODE: Final = "mode"
+CONF_CUSTOM_TEXT_SLOT_LABEL: Final = "slot_label"
+CONF_CUSTOM_TEXT_DEFAULT_TEXT: Final = "default_text"
+
+CUSTOM_TEXT_MODE_SLOT: Final = "slot"
+CUSTOM_TEXT_MODE_ENTITY: Final = "entity"
 
 DEFAULT_LOCALE: Final = "en"
 DEFAULT_DASHBOARD_TEMPLATE: Final = "default"
@@ -55,6 +61,8 @@ SERVICE_GENERATE: Final = "generate"
 SERVICE_PREVIEW: Final = "preview"
 SERVICE_DELIVER: Final = "deliver"
 SERVICE_REFRESH_SNIPPET: Final = "refresh_snippet"
+SERVICE_PUSH_SNIPPET: Final = "push_snippet"
+SERVICE_CLEAR_SNIPPET: Final = "clear_snippet"
 
 ATTR_SUMMARY_STATE: Final = "summary_state"
 ATTR_GENERATED_AT: Final = "generated_at"
