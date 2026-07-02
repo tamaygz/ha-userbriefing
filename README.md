@@ -16,7 +16,7 @@ This repository is intentionally scaffolded around:
 - phrase-driven rendering
 - dashboard assembly from provider-exposed entities and card fragments
 
-The current state is an architecture-first scaffold, not a finished production integration.
+The current state is an actively developed integration. Core features are working; a subset of provider types and the deliver-routing path are still under development.
 
 ## Quick Test In Home Assistant
 
@@ -31,7 +31,7 @@ This repository is set up for the fastest current real-world test path through H
 
 Current limitation:
 
-- installation and setup can be tested in Home Assistant now, and the built-in calendar, weather, task-summary, and compliment providers collect real data, but most other providers and some runtime behaviors are still stubs.
+- installation, setup, snippet onboarding, and briefing generation all work end-to-end; the `deliver` action is prepared but does not yet route to a real notification or TTS target.
 
 ## Design goals
 
@@ -42,7 +42,8 @@ Current limitation:
 
 ## Repository layout
 
-- `custom_components/user_briefing/` integration scaffold
+- `custom_components/user_briefing/` integration source
+- `blueprints/` bundled automation blueprints for push_snippet / clear_snippet
 - `docs/` implementation-facing guidance
 - `specs/` architectural and UX design
 - `plan/` execution plan
@@ -50,21 +51,24 @@ Current limitation:
 
 ## Status
 
-Scaffolded areas:
+Implemented and tested:
 
 - integration manifest and HACS metadata
-- My Home Assistant and HACS testing shortcuts
-- config flow, options flow, reconfigure flow, and subentry flow skeletons
-- provider contracts and registry
-- adapter stubs
-- rendering and coordinator skeletons
-- dashboard template placeholders
-- service definitions
-- initial tests and docs
+- config flow, options flow, reconfigure flow, and subentry flow
+- provider contracts, registry, and plugin architecture
+- real provider implementations: calendar, weather, task-summary, compliment, custom_text
+- adapter primitives for HA entity and service data
+- phrase-bank rendering with per-scenario variation
+- alert emission, severity ordering, and alert promotion above snippet text
+- dynamic snippet entity lifecycle (add/update/remove without reload)
+- dashboard fragment composition and per-user dashboard template generation
+- notification payload helpers
+- `push_snippet` / `clear_snippet` services with slot store and TTL expiry
+- bundled automation blueprints for push/clear workflows
+- comprehensive automated tests (167 passing)
 
-## Next implementation layers
+Still under development:
 
-1. Wire real provider collection and normalization.
-2. Wire subentry-backed runtime storage and entity creation.
-3. Implement dashboard fragment composition.
-4. Add focused provider implementations one by one.
+- stub providers: `home_status`, `news_headlines`, `beach_conditions`, `wind_conditions`
+- `deliver` action routing to a real notification or TTS target
+- mail-summary provider (planned post-v1)

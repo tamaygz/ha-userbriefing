@@ -41,13 +41,13 @@
 - [x] TASK-012: Replace stub providers with real provider implementations, starting with calendar, weather, task-summary, and compliment.
 - [x] TASK-013: Implement provider-specific reconfigure schemas and richer selectors for built-in providers.
 - [x] TASK-014: Implement dashboard fragment composition and at least one full per-user dashboard template generated from provider fragments.
-- [ ] TASK-015: Implement notification payload helper generation while keeping delivery workflows stubbed.
+- [x] TASK-015: Implement notification payload helper generation while keeping delivery workflows stubbed.
 - [x] TASK-016: Decide and implement the final dedicated entity surface for generated-at and per-snippet status, or revise architecture docs to match the chosen entity model.
-- [ ] TASK-017: Expand automated tests for coordinator behavior, flow behavior, service responses, and runtime edge cases.
-- [ ] TASK-018: Replace placeholder phrase assets with real scenario-based phrase banks and add rendering coverage.
+- [x] TASK-017: Expand automated tests for coordinator behavior, flow behavior, service responses, and runtime edge cases.
+- [x] TASK-018: Replace placeholder phrase assets with real scenario-based phrase banks and add rendering coverage.
 - [x] TASK-019: Define and implement a shared alert contract so providers can emit structured alerts independently of their normal snippet text.
-- [ ] TASK-020: Implement alert promotion, severity ordering, and alert-aware rendering in the coordinator and renderer.
-- [ ] TASK-021: Add dashboard fragments or cards for promoted alerts so alert state is visible before normal informational snippets.
+- [x] TASK-020: Implement alert promotion, severity ordering, and alert-aware rendering in the coordinator and renderer.
+- [x] TASK-021: Add dashboard fragments or cards for promoted alerts so alert state is visible before normal informational snippets.
 - [x] TASK-022: Provide reusable adapter primitives (`HomeAssistantEntityAdapter`, `HomeAssistantServiceAdapter`) and a provider `get_adapter()` seam so existing integrations can be consumed with minimal provider code.
 - [x] TASK-023: Add adapter recipes/wiring for the first real providers (calendar via `calendar.get_events`, weather via `weather.get_forecasts`, task summary via `todo.get_items`) and document the pattern for contributors.
 

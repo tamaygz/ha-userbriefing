@@ -72,6 +72,28 @@ class BriefingProvider(ABC):
         """Validate provider-specific reconfigure input."""
         return self.validate_config(user_input)
 
+    def prepare_collect_config(
+        self,
+        config: dict[str, Any],
+        runtime_ctx: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Enrich the collection config with runtime context before async_collect.
+
+        The coordinator calls this once per snippet, passing a generic runtime
+        context dict so providers can inject runtime data without the core
+        orchestration knowing anything about provider-specific implementation
+        details.  The default implementation returns ``config`` unchanged.
+
+        ``runtime_ctx`` contains at minimum:
+        - ``"subentry_id"`` (str): the subentry being processed
+        - ``"slot_store"`` (dict): the coordinator's current in-memory slot store
+
+        Providers that need to inject runtime data (e.g. ``custom_text`` for
+        slot-mode entries) should override this method instead of expecting the
+        coordinator to contain provider-specific branching logic.
+        """
+        return config
+
     @abstractmethod
     async def async_collect(self, config: dict[str, Any]) -> dict[str, Any]:
         """Collect raw provider payload."""

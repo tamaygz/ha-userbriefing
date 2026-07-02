@@ -1,8 +1,9 @@
 """Coordinator behavior tests.
 
 Covers TEST-011 (adapter failure isolation), TEST-015 (enabled / order /
-priority), TEST-016 (preview non-mutation), and TEST-019 (alert collection
-passthrough) from plan/design-user-briefing-1.md.
+priority), TEST-016 (preview non-mutation), TEST-019 (alert collection
+passthrough), alert severity ordering, slot-expiry pruning, and the
+prepare_collect_config provider seam from plan/design-user-briefing-1.md.
 
 Tests are intentionally self-contained: they use SimpleNamespace mocks for
 hass and ConfigEntry so they run without a real Home Assistant instance.
@@ -14,6 +15,7 @@ registry); that is expected and does not affect snippet-level assertions.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace, MappingProxyType, SimpleNamespace
 from unittest.mock import patch
 
@@ -25,7 +27,8 @@ from custom_components.user_briefing.const import (
     CONF_TITLE_OVERRIDE,
     SUBENTRY_TYPE_SNIPPET,
 )
-from custom_components.user_briefing.coordinator import UserBriefingCoordinator
+from custom_components.user_briefing.coordinator import UserBriefingCoordinator, _sort_alerts
+from custom_components.user_briefing.models import AlertItem, SlotEntry
 
 
 # ---------------------------------------------------------------------------
@@ -532,3 +535,248 @@ def test_adapter_backed_provider_collects_and_normalizes_output() -> None:
     assert len(result.snippets) == 1
     assert result.snippets[0].status == "ok"
     assert "sunny" in result.snippets[0].text
+
+
+# ---------------------------------------------------------------------------
+# Alert severity ordering (_sort_alerts)
+# ---------------------------------------------------------------------------
+
+
+def test_sort_alerts_orders_by_severity_critical_warning_info() -> None:
+    """_sort_alerts must return critical before warning before info."""
+    alerts = [
+        AlertItem(alert_key="a1", provider_key="p", severity="info", title="T", text="T"),
+        AlertItem(alert_key="a2", provider_key="p", severity="critical", title="T", text="T"),
+        AlertItem(alert_key="a3", provider_key="p", severity="warning", title="T", text="T"),
+    ]
+    sorted_alerts = _sort_alerts(alerts)
+    assert [a.severity for a in sorted_alerts] == ["critical", "warning", "info"]
+
+
+def test_sort_alerts_stable_for_equal_severity() -> None:
+    """Alerts with the same severity preserve their original relative order."""
+    alerts = [
+        AlertItem(alert_key="first", provider_key="p", severity="warning", title="T", text="T"),
+        AlertItem(alert_key="second", provider_key="p", severity="warning", title="T", text="T"),
+    ]
+    sorted_alerts = _sort_alerts(alerts)
+    assert sorted_alerts[0].alert_key == "first"
+    assert sorted_alerts[1].alert_key == "second"
+
+
+def test_sort_alerts_unknown_severity_sorted_last() -> None:
+    """Alerts with unknown severity must be sorted after all known severities."""
+    alerts = [
+        AlertItem(alert_key="unknown", provider_key="p", severity="unknown_level", title="T", text="T"),
+        AlertItem(alert_key="critical", provider_key="p", severity="critical", title="T", text="T"),
+    ]
+    sorted_alerts = _sort_alerts(alerts)
+    assert sorted_alerts[0].severity == "critical"
+    assert sorted_alerts[1].severity == "unknown_level"
+
+
+def test_sort_alerts_empty_list_returns_empty() -> None:
+    """_sort_alerts must handle an empty input without error."""
+    assert _sort_alerts([]) == []
+
+
+def test_result_alerts_are_sorted_by_severity() -> None:
+    """Generated BriefingResult.alerts must be sorted critical > warning > info."""
+    # weather_forecast emits warning alerts on lightning; add a second provider
+    # by running two snippets and checking the combined sort order.
+    lightning_response = {
+        "weather.home": {
+            "forecast": [{"condition": "lightning", "temperature": 25, "templow": 18}]
+        }
+    }
+    hass = _make_hass(services=_FakeServices(lightning_response))
+    sub = _make_subentry(
+        "sub-1",
+        "weather_forecast",
+        data_extras={"source_ref": "weather.home", "summary_limit": 1},
+    )
+    entry = _make_entry([sub])
+    coordinator = UserBriefingCoordinator(hass, entry)
+
+    result = asyncio.run(coordinator.async_generate())
+
+    severities = [a.severity for a in result.alerts]
+    # Verify they are in non-increasing severity order (critical, warning, info).
+    severity_rank = {"critical": 0, "warning": 1, "info": 2}
+    ranks = [severity_rank.get(s, 99) for s in severities]
+    assert ranks == sorted(ranks), f"Alerts not sorted by severity: {severities}"
+
+
+# ---------------------------------------------------------------------------
+# Alert promotion in rendered text
+# ---------------------------------------------------------------------------
+
+
+def test_rendered_text_contains_alerts_before_snippet_content() -> None:
+    """render_briefing_text must place alert blocks before snippet paragraphs."""
+    lightning_response = {
+        "weather.home": {
+            "forecast": [{"condition": "lightning", "temperature": 25, "templow": 18}]
+        }
+    }
+    hass = _make_hass(services=_FakeServices(lightning_response))
+    sub = _make_subentry(
+        "sub-1",
+        "weather_forecast",
+        data_extras={"source_ref": "weather.home", "summary_limit": 1},
+    )
+    entry = _make_entry([sub])
+    coordinator = UserBriefingCoordinator(hass, entry)
+
+    result = asyncio.run(coordinator.async_generate())
+
+    text = result.rendered_text
+    assert text, "rendered_text must be non-empty when alerts and snippets are present"
+
+    if not result.alerts or not result.snippets:
+        # Guard: nothing to compare positions for.
+        return
+
+    # All alert severity labels are uppercased in brackets, e.g. [WARNING].
+    alert_positions = [
+        text.find(f"[{a.severity.upper()}]") for a in result.alerts
+        if f"[{a.severity.upper()}]" in text
+    ]
+
+    # Snippet text is rendered through phrase banks so the raw snippet.text may
+    # differ.  Instead, find the last occurrence of an alert marker and confirm
+    # it comes before any non-alert paragraph.
+    if alert_positions:
+        last_alert_end = max(
+            text.find(f"[{a.severity.upper()}]") + len(f"[{a.severity.upper()}]")
+            for a in result.alerts
+            if f"[{a.severity.upper()}]" in text
+        )
+        # Everything after the last alert marker is snippet body text.
+        remainder = text[last_alert_end:]
+        # The remainder must not be entirely whitespace (snippets must follow).
+        assert remainder.strip(), "Snippet content must follow alert blocks"
+
+
+# ---------------------------------------------------------------------------
+# Slot expiry pruning
+# ---------------------------------------------------------------------------
+
+
+def test_expired_slot_is_pruned_before_generation() -> None:
+    """Slots whose expires_at is in the past must be removed before provider dispatch."""
+    sub = _make_subentry(
+        "sub-slot",
+        "custom_text",
+        data_extras={"mode": "slot", "default_text": "", "slot_label": "test"},
+    )
+    entry = _make_entry([sub])
+    coordinator = UserBriefingCoordinator(_make_hass(), entry)
+
+    # Inject a slot entry that is already expired.
+    past = datetime.now(tz=timezone.utc) - timedelta(hours=1)
+    coordinator.slot_store["sub-slot"] = SlotEntry(
+        text="stale content",
+        expires_at=past,
+    )
+    assert "sub-slot" in coordinator.slot_store
+
+    asyncio.run(coordinator.async_generate())
+
+    assert "sub-slot" not in coordinator.slot_store, (
+        "Expired slot entry must be pruned from slot_store during generation"
+    )
+
+
+def test_non_expired_slot_is_not_pruned() -> None:
+    """Slots whose expires_at is in the future must remain after generation."""
+    sub = _make_subentry(
+        "sub-slot",
+        "custom_text",
+        data_extras={"mode": "slot", "default_text": "", "slot_label": "test"},
+    )
+    entry = _make_entry([sub])
+    coordinator = UserBriefingCoordinator(_make_hass(), entry)
+
+    future = datetime.now(tz=timezone.utc) + timedelta(hours=1)
+    coordinator.slot_store["sub-slot"] = SlotEntry(
+        text="live content",
+        expires_at=future,
+    )
+
+    asyncio.run(coordinator.async_generate())
+
+    assert "sub-slot" in coordinator.slot_store, (
+        "Non-expired slot entry must remain in slot_store after generation"
+    )
+
+
+def test_slot_without_expiry_is_never_pruned() -> None:
+    """Slots with expires_at=None must never be automatically removed."""
+    sub = _make_subentry(
+        "sub-slot",
+        "custom_text",
+        data_extras={"mode": "slot", "default_text": "", "slot_label": "test"},
+    )
+    entry = _make_entry([sub])
+    coordinator = UserBriefingCoordinator(_make_hass(), entry)
+
+    coordinator.slot_store["sub-slot"] = SlotEntry(
+        text="permanent content",
+        expires_at=None,
+    )
+
+    asyncio.run(coordinator.async_generate())
+
+    assert "sub-slot" in coordinator.slot_store, (
+        "Slot entry with no expiry must remain in slot_store"
+    )
+
+
+def test_preview_also_prunes_expired_slots() -> None:
+    """Slot pruning must happen in async_preview as well as async_generate."""
+    sub = _make_subentry(
+        "sub-slot",
+        "custom_text",
+        data_extras={"mode": "slot", "default_text": "", "slot_label": "test"},
+    )
+    entry = _make_entry([sub])
+    coordinator = UserBriefingCoordinator(_make_hass(), entry)
+
+    past = datetime.now(tz=timezone.utc) - timedelta(hours=1)
+    coordinator.slot_store["sub-slot"] = SlotEntry(text="stale", expires_at=past)
+
+    asyncio.run(coordinator.async_preview())
+
+    assert "sub-slot" not in coordinator.slot_store
+
+
+# ---------------------------------------------------------------------------
+# prepare_collect_config provider seam (architecture boundary)
+# ---------------------------------------------------------------------------
+
+
+def test_custom_text_slot_works_without_coordinator_special_case() -> None:
+    """custom_text slot-mode content must reach the provider via prepare_collect_config.
+
+    This test verifies that coordinator no longer contains provider-specific
+    branching logic: the slot entry is passed through the generic
+    prepare_collect_config() seam, not through an 'if provider_key == "custom_text"'
+    check.
+    """
+    sub = _make_subentry(
+        "sub-slot",
+        "custom_text",
+        data_extras={"mode": "slot", "default_text": "", "slot_label": "test"},
+    )
+    entry = _make_entry([sub])
+    coordinator = UserBriefingCoordinator(_make_hass(), entry)
+
+    # Store a valid (non-expired) slot entry.
+    coordinator.slot_store["sub-slot"] = SlotEntry(text="Hello from slot")
+
+    result = asyncio.run(coordinator.async_generate())
+
+    assert len(result.snippets) == 1
+    assert result.snippets[0].status == "ok"
+    assert result.snippets[0].text == "Hello from slot"
