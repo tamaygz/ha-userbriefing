@@ -17,6 +17,8 @@ _SEVERE_CONDITIONS = {
     "lightning-rainy",
     "pouring",
     "snowy-rainy",
+    "windy",
+    "windy-variant",
 }
 
 
@@ -38,16 +40,44 @@ def _format_temperature(value: object) -> str | None:
     return None
 
 
-def _describe_forecast(forecast: dict) -> str:
-    condition = str(forecast.get("condition") or "unknown").replace("_", " ")
+def _normalize_condition(value: object) -> str:
+    condition = str(value or "unknown").replace("_", " ").replace("-", " ")
+    return " ".join(condition.split())
+
+
+def _describe_forecast(forecast: dict, index: int) -> str:
+    day_label = "Today" if index == 0 else "Tomorrow" if index == 1 else "Later"
+    condition = _normalize_condition(forecast.get("condition"))
     high = _format_temperature(forecast.get("temperature"))
     low = _format_temperature(forecast.get("templow"))
 
     if high and low:
-        return f"{condition}, high {high}, low {low}"
+        return f"{day_label} looks {condition} with a high of {high} and a low of {low}."
     if high:
-        return f"{condition}, {high}"
-    return condition
+        return f"{day_label} looks {condition} with highs near {high}."
+    if low:
+        return f"{day_label} looks {condition} with lows near {low}."
+    return f"{day_label} looks {condition}."
+
+
+def _build_focus_sentence(forecast_items: list[dict]) -> str | None:
+    if not forecast_items:
+        return None
+
+    today = forecast_items[0]
+    condition = str(today.get("condition") or "").lower()
+    normalized_condition = _normalize_condition(condition)
+
+    if condition in _SEVERE_CONDITIONS:
+        return f"Heads up: severe {normalized_condition} conditions are possible today."
+
+    precipitation_probability = today.get("precipitation_probability")
+    if isinstance(precipitation_probability, float) and precipitation_probability.is_integer():
+        precipitation_probability = int(precipitation_probability)
+    if isinstance(precipitation_probability, (int, float)) and precipitation_probability >= 70:
+        return f"Rain is likely today ({precipitation_probability}%)."
+
+    return None
 
 
 def _build_alerts(
@@ -71,7 +101,7 @@ def _build_alerts(
                     provider_key=provider_key,
                     severity="warning",
                     title="Weather alert",
-                    text=f"Watch for {condition.replace('-', ' ').replace('_', ' ')} conditions.",
+                    text=f"Watch for severe { _normalize_condition(condition) } conditions.",
                     source_label=source_ref if isinstance(source_ref, str) else None,
                     meta={"condition": condition},
                 )
@@ -142,17 +172,18 @@ class WeatherForecastProvider(StubBriefingProvider):
                 meta={"source_ref": source_ref},
             )
 
-        segments = [_describe_forecast(item) for item in visible_forecast]
-        summary = "; ".join(segments)
+        segments = [_describe_forecast(item, index) for index, item in enumerate(visible_forecast)]
+        focus_sentence = _build_focus_sentence(visible_forecast)
+        summary = " ".join(segments + ([focus_sentence] if focus_sentence else []))
         return SnippetResult(
             provider_key=self.describe().key,
             instance_id=instance_id,
             status="ok",
             priority="optional",
             title=self.describe().name,
-            text=f"Forecast: {summary}.",
+            text=summary,
             scenario="forecast_ready",
-            data={"forecast": forecast_items, "summary": summary},
+            data={"forecast": forecast_items, "summary": summary, "focus_sentence": focus_sentence or ""},
             meta={"source_ref": source_ref},
             alerts=_build_alerts(
                 forecast_items,

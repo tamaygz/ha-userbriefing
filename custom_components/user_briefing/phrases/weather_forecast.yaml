@@ -1,14 +1,16 @@
 scenarios:
   forecast_ready:
-    - "Forecast: {summary}."
-    - "Today's weather: {summary}."
-    - "Weather update: {summary}."
-    - "Outside today — {summary}."
+    - "{summary}"
+    - "Weather at a glance: {summary}"
+    - "Here’s your weather focus: {summary}"
+    - "Plan around this: {summary}"
   empty:
     - "No weather forecast is available right now."
-    - "Weather data isn't in yet — check back soon."
-    - "Forecast is still loading. Dress for uncertainty."
+    - "I don’t have forecast details yet—check back shortly."
+    - "Forecast data is still loading, so keep plans flexible for now."
+    - "No forecast has arrived yet. A quick recheck in a bit should help."
   error:
     - "Weather forecast data is unavailable right now."
-    - "Can't reach the weather service right now."
-    - "Weather data took the day off. Try again shortly."
+    - "I can’t reach the weather service right now."
+    - "The weather service is having trouble; try again soon."
+    - "Weather data is temporarily unavailable. Please retry in a moment."
