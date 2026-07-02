@@ -20,12 +20,23 @@ from .const import (
     SUBENTRY_TYPE_SNIPPET,
 )
 from .dashboard import build_dashboard_delivery_payload
-from .models import BriefingResult
+from .models import ALERT_SEVERITY_ORDER, AlertItem, BriefingResult
 from .providers.registry import create_provider, ensure_builtin_providers_loaded
 from .rendering import render_briefing_text
 from .subentries import get_config_subentry_data, get_config_subentry_options, iter_config_subentries
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _sort_alerts(alerts: list[AlertItem]) -> list[AlertItem]:
+    """Return alerts sorted by configured severity order."""
+    severity_order = {
+        severity: index for index, severity in enumerate(ALERT_SEVERITY_ORDER)
+    }
+    return sorted(
+        alerts,
+        key=lambda alert: severity_order.get(alert.severity, len(severity_order)),
+    )
 
 
 class UserBriefingCoordinator:
@@ -102,6 +113,7 @@ class UserBriefingCoordinator:
             )
 
         snippets = []
+        alerts = []
         for _order, _subentry_id, subentry, subentry_options in sorted(snippets_with_order, key=lambda item: (item[0], item[1])):
             subentry_id = getattr(subentry, "subentry_id", None)
             provider_config = get_config_subentry_data(subentry, SNIPPET_COMMON_SETTING_KEYS)
@@ -116,6 +128,7 @@ class UserBriefingCoordinator:
                 snippet.priority = subentry_options.get(CONF_PRIORITY, snippet.priority)
                 snippet.title = subentry_options.get(CONF_TITLE_OVERRIDE) or snippet.title
                 snippets.append(snippet)
+                alerts.extend(snippet.alerts)
             except Exception as err:  # pragma: no cover - defensive scaffolding
                 _LOGGER.exception("Provider %s failed during scaffold generation: %s", provider_key, err)
 
@@ -124,6 +137,7 @@ class UserBriefingCoordinator:
             generated_at=datetime.now(tz=timezone.utc),
             summary_state="ready" if snippets else "empty",
             snippets=snippets,
+            alerts=_sort_alerts(alerts),
         )
         result.rendered_text = render_briefing_text(result)
         try:
