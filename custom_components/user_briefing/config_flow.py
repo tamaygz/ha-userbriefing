@@ -37,6 +37,8 @@ except ImportError:  # pragma: no cover - compatibility for older local test env
         pass
 
 from .const import (
+    CONF_CUSTOM_TEXT_MODE,
+    CONF_CUSTOM_TEXT_SLOT_LABEL,
     CONF_DASHBOARD_PATH,
     CONF_DASHBOARD_TEMPLATE,
     CONF_DEFAULT_DELIVERY_MODE,
@@ -51,6 +53,8 @@ from .const import (
     CONF_SOURCE_TYPE,
     CONF_TITLE_OVERRIDE,
     CONF_USER_KEY,
+    CUSTOM_TEXT_MODE_ENTITY,
+    CUSTOM_TEXT_MODE_SLOT,
     DEFAULT_DASHBOARD_TEMPLATE,
     DEFAULT_DELIVERY_MODE,
     DEFAULT_ENABLED,
@@ -503,6 +507,20 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
         """Configure the provider-specific source."""
         provider = self._provider_instance()
 
+        # custom_text has its own multi-step flow.
+        if self._provider_key == "custom_text":
+            if user_input is not None:
+                self._provider_config = provider.validate_config(user_input)
+                mode = user_input.get(CONF_CUSTOM_TEXT_MODE, CUSTOM_TEXT_MODE_SLOT)
+                if mode == CUSTOM_TEXT_MODE_ENTITY:
+                    return await self.async_step_custom_text_entity()
+                return await self.async_step_custom_text_confirm()
+
+            return self.async_show_form(
+                step_id="provider_config",
+                data_schema=provider.build_config_schema(),
+            )
+
         if user_input is not None:
             self._provider_config = provider.validate_config(user_input)
             return await self.async_step_common()
@@ -510,6 +528,41 @@ class BriefingSnippetSubentryFlow(ConfigSubentryFlow):
         return self.async_show_form(
             step_id="provider_config",
             data_schema=provider.build_config_schema(),
+        )
+
+    async def async_step_custom_text_entity(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Choose entity source for custom_text entity-mode."""
+        from .providers.custom_text import CustomTextProvider
+
+        if user_input is not None:
+            self._provider_config = CustomTextProvider(self.hass).validate_config(
+                {**self._provider_config, **user_input}
+            )
+            return await self.async_step_common()
+
+        return self.async_show_form(
+            step_id="custom_text_entity",
+            data_schema=CustomTextProvider(self.hass).build_entity_schema(),
+        )
+
+    async def async_step_custom_text_confirm(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Confirm slot creation and show subentry_id for copy-paste."""
+        if user_input is not None:
+            return await self.async_step_common()
+
+        # The subentry_id isn't assigned yet (it comes from async_create_entry),
+        # so we show a placeholder that the user can find in developer tools.
+        # After the entry is created the subentry_id is visible in the UI.
+        return self.async_show_form(
+            step_id="custom_text_confirm",
+            data_schema=vol.Schema({}),
+            description_placeholders={"subentry_id": "— assigned on save —"},
         )
 
     async def async_step_common(

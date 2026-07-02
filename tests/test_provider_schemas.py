@@ -110,6 +110,8 @@ def test_snippet_flow_strings_describe_provider_and_reconfigure_fields() -> None
     assert set(snippet_steps["provider_config"]["data_description"]) == {
         "source_ref",
         "summary_limit",
+        "slot_label",
+        "mode",
     }
     assert set(snippet_steps["common"]["data_description"]) == {
         "enabled",

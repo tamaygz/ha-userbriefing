@@ -170,6 +170,50 @@
           "description": "The configured snippet subentry to refresh."
         }
       }
+    },
+    "push_snippet": {
+      "name": "Push snippet",
+      "description": "Write custom text into a named slot so it appears in the next generated briefing.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "The profile config entry to write into."
+        },
+        "subentry_id": {
+          "name": "Snippet slot ID",
+          "description": "The subentry_id of the custom_text slot to write into. Copy this from the integration settings."
+        },
+        "text": {
+          "name": "Text",
+          "description": "The content to push. Supports Home Assistant templates."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Optional title override shown in the briefing."
+        },
+        "severity": {
+          "name": "Severity",
+          "description": "Promote to the alert block by setting warning or critical."
+        },
+        "expires_in_hours": {
+          "name": "Auto-clear after (hours)",
+          "description": "Set to 0 to keep the snippet until manually cleared."
+        }
+      }
+    },
+    "clear_snippet": {
+      "name": "Clear snippet",
+      "description": "Remove the current content from a custom_text slot.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "The profile config entry."
+        },
+        "subentry_id": {
+          "name": "Snippet slot ID",
+          "description": "The subentry_id of the custom_text slot to clear."
+        }
+      }
     }
   },
   "config_subentries": {
@@ -192,11 +236,15 @@
           "description": "Configure the source and scope for this snippet instance.",
           "data": {
             "source_ref": "Source reference",
-            "summary_limit": "Summary limit"
+            "summary_limit": "Summary limit",
+            "slot_label": "Slot label",
+            "mode": "Mode"
           },
           "data_description": {
             "source_ref": "Choose the entity or integration reference this snippet should read from.",
-            "summary_limit": "Maximum number of items to summarize when this provider supports limiting results."
+            "summary_limit": "Maximum number of items to summarize when this provider supports limiting results.",
+            "slot_label": "Optional human-readable label shown in the subentry list.",
+            "mode": "Choose push-service mode to inject content via automations, or entity-watcher mode to read from a Home Assistant entity."
           }
         },
         "common": {
@@ -234,6 +282,20 @@
             "priority": "Mark snippets as required or optional for future rendering rules.",
             "title_override": "Optional custom title shown instead of the provider's default name."
           }
+        },
+        "custom_text_entity": {
+          "title": "Choose entity source",
+          "description": "Select the entity whose state will be read as the snippet content.",
+          "data": {
+            "source_ref": "Entity"
+          },
+          "data_description": {
+            "source_ref": "Choose an input_text, sensor, or template entity to watch."
+          }
+        },
+        "custom_text_confirm": {
+          "title": "Slot ready",
+          "description": "Your custom text slot has been created. Copy the **Snippet slot ID** below and paste it into the push_snippet service call or automation blueprint.\n\nSnippet slot ID: `{subentry_id}`"
         }
       },
       "abort": {
@@ -245,6 +307,9 @@
   "exceptions": {
     "unknown_config_entry_id": {
       "message": "The provided config_entry_id does not match any loaded User Briefing profile. Use the config entry selector to choose a valid profile."
+    },
+    "push_snippet_invalid_subentry": {
+      "message": "The provided subentry_id does not match a custom_text snippet configured in push-service (slot) mode. Check the snippet type and mode in the integration settings."
     }
   }
 }

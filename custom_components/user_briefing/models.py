@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -102,6 +102,17 @@ class SnippetResult:
     meta: dict[str, Any] = field(default_factory=dict)
     actions: list[SnippetAction] = field(default_factory=list)
     alerts: list[AlertItem] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class SlotEntry:
+    """In-memory slot written by the push_snippet service."""
+
+    text: str
+    title: str | None = None
+    severity: str | None = None
+    pushed_at: datetime = field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    expires_at: datetime | None = None
 
 
 @dataclass(slots=True)

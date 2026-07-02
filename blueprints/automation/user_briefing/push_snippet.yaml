@@ -1,0 +1,84 @@
+blueprint:
+  name: "User Briefing: Push a custom snippet"
+  description: >
+    Push any text into a User Briefing custom slot when a trigger fires.
+    Use this to inject any content into your briefing — sensor readings,
+    package tracking, custom reminders, LLM-generated text, or anything else
+    you can express as a Home Assistant template.
+  domain: automation
+  author: ha-userbriefing
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    config_entry_section:
+      name: Briefing profile
+      input:
+        config_entry_id:
+          name: Profile
+          description: The User Briefing profile to write into.
+          selector:
+            config_entry:
+              integration: user_briefing
+        subentry_id:
+          name: Snippet slot
+          description: >
+            The ID of the custom_text snippet slot to write to.
+            Copy this from the subentry list in the integration settings.
+          selector:
+            text:
+    content_section:
+      name: Content
+      input:
+        text:
+          name: Snippet text
+          description: Supports Home Assistant templates.
+          selector:
+            template:
+        title:
+          name: Title (optional)
+          default: ""
+          selector:
+            text:
+        severity:
+          name: Severity
+          description: >
+            Set to warning or critical to promote this snippet to the
+            alert block at the top of the briefing.
+          default: ""
+          selector:
+            select:
+              options:
+                - label: Normal snippet
+                  value: ""
+                - label: Info
+                  value: info
+                - label: Warning
+                  value: warning
+                - label: Critical
+                  value: critical
+    expiry_section:
+      name: Expiry
+      collapsed: true
+      input:
+        expires_in_hours:
+          name: Auto-clear after (hours)
+          description: Set to 0 to keep the snippet until manually cleared.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 168
+              step: 1
+              unit_of_measurement: "h"
+
+trigger: []
+
+action:
+  - action: user_briefing.push_snippet
+    data:
+      config_entry_id: !input config_entry_id
+      subentry_id: !input subentry_id
+      text: !input text
+      title: !input title
+      severity: !input severity
+      expires_in_hours: !input expires_in_hours

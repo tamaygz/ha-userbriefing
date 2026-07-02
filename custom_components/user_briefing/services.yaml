@@ -51,3 +51,83 @@ refresh_snippet:
       required: true
       selector:
         text:
+
+push_snippet:
+  name: Push snippet
+  description: >
+    Write custom text into a named slot so it appears in the next generated briefing.
+    The slot must belong to a custom_text snippet configured in push-service mode.
+  fields:
+    config_entry_id:
+      name: Config entry ID
+      description: Profile config entry identifier.
+      required: true
+      selector:
+        config_entry:
+          integration: user_briefing
+    subentry_id:
+      name: Snippet slot ID
+      description: >
+        The subentry_id of the custom_text slot to write into.
+        Copy this from the integration settings after creating the snippet.
+      required: true
+      selector:
+        text:
+    text:
+      name: Text
+      description: The content to push into the slot. Supports Home Assistant templates.
+      required: true
+      selector:
+        template:
+    title:
+      name: Title
+      description: Optional title override shown in the briefing.
+      required: false
+      selector:
+        text:
+    severity:
+      name: Severity
+      description: >
+        Set to warning or critical to promote this snippet to the alert block
+        at the top of the briefing. Leave blank for a normal snippet.
+      required: false
+      selector:
+        select:
+          options:
+            - label: Info
+              value: info
+            - label: Warning
+              value: warning
+            - label: Critical
+              value: critical
+    expires_in_hours:
+      name: Auto-clear after (hours)
+      description: >
+        Number of hours until the slot entry is automatically removed.
+        Set to 0 for no expiry.
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 168
+          step: 1
+          unit_of_measurement: "h"
+
+clear_snippet:
+  name: Clear snippet
+  description: Remove the current content from a custom_text slot.
+  fields:
+    config_entry_id:
+      name: Config entry ID
+      description: Profile config entry identifier.
+      required: true
+      selector:
+        config_entry:
+          integration: user_briefing
+    subentry_id:
+      name: Snippet slot ID
+      description: The subentry_id of the custom_text slot to clear.
+      required: true
+      selector:
+        text:
