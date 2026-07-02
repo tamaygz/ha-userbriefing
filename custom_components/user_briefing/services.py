@@ -45,7 +45,7 @@ _PUSH_SNIPPET_SCHEMA = vol.Schema(
         vol.Optional("title"): str,
         vol.Optional("severity"): vol.In(["info", "warning", "critical"]),
         vol.Optional("expires_in_hours", default=0): vol.All(
-            vol.Coerce(float), vol.Range(min=0, max=168)
+            vol.Coerce(int), vol.Range(min=0, max=168)
         ),
     }
 )
