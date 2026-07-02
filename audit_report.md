@@ -1,0 +1,289 @@
+# Audit Report: ha-userbriefing
+
+> Requested output path `/tmp/audit_report.md` could not be used because this environment forbids `/tmp` writes. Equivalent report written to `./audit_report.md`.
+
+## 1. Document Inventory
+
+| File | Class | Key commitments / promises |
+|---|---|---|
+| `README.md` | overview | One config entry per user; one snippet subentry per purpose; registry-based providers; adapter-based integrations; phrase rendering; dashboard-first output; current state still partly stubbed. |
+| `TODO.md` | backlog | Tracks completed scaffold work plus follow-up work; still shows open items for alert-ordering tests and custom_text/blueprints even though much of that work now exists in code. |
+| `AGENTS.md` | contributor guide / source-of-truth map | Specifies read order by task type; enforces clean provider boundaries; says notifications remain stubbed; requires TODO/GitHub issue sync; lists still-stubbed areas. |
+| `CHANGELOG.md` | release note | States repository started as initial scaffold/spec/testing path. |
+| `CONTRIBUTING.md` | contributor guide | Describes scaffold-first state and requires TODO + linked issue updates. |
+| `plan/design-user-briefing-1.md` | execution plan | Defines REQ-001..REQ-022, tasks, dependencies, files, tests, and risks for the integration. |
+| `docs/setup.md` | user/testing doc | Promises HACS install path and says current real providers are calendar/weather/task-summary/compliment. |
+| `docs/configuration.md` | user/config doc | Commits to split configuration across `ConfigEntry.data`, `ConfigEntry.options`, and config subentries. |
+| `docs/services.md` | service contract doc | Documents `generate`, `preview`, `deliver`, `refresh_snippet`; says deliver is still stubbed; documents notification payload contract. |
+| `docs/dashboards.md` | dashboard doc | Promises profile/snippet entities, provider fragments, top-of-dashboard alerts card, overview card, and packaged YAML template examples. |
+| `research/meaningful-additions-to-review.md` | design rationale | Justifies adapter reuse, dashboard-first design, rule-based composition, notification stubbing, and task integration reuse. |
+| `specs/user-briefing-architecture-v1.md` | architecture spec | Defines user/snippet model, service boundaries, delivery separation, adapter approach, provider types, future extension path, and stubbed notification delivery in v1. |
+| `specs/provider-plugin-architecture.md` | plugin spec | Requires strict provider registry/contracts, provider/adapter separation, compatibility rules, and notification logic to stay stubbed at interface level in v1. |
+| `specs/contracts-and-schemas.md` | schema spec | Defines `SnippetResult`, `AlertItem`, `BriefingResult`, dashboard fragments, service payload contracts, and adapter expectations. |
+| `specs/configuration-ux.md` | UX spec | Requires modern Home Assistant flows using selectors/sections/data descriptions; options flow with `self.config_entry`; subentry onboarding and reconfigure behavior. |
+| `specs/dashboard-assembly.md` | dashboard spec | Defines provider-declared fragments, alert promotion to dashboard top, overview/profile cards, and reusable templates. |
+| `specs/reference-integration-consistency.md` | consistency spec | Requires packaging/README/HACS/Home Assistant patterns consistent with the author's other integrations. |
+| `specs/automation-push-provider.md` | feature spec | Defines `custom_text` provider, slot/entity modes, `SlotEntry`, `push_snippet`/`clear_snippet`, TTL expiry, and bundled automation blueprints. |
+| `custom_components/user_briefing/phrases/README.md` | asset note | Says phrase-bank assets live here and are provider/scenario based. |
+
+### Inventory observations
+
+- The spec set is thorough and mostly reflected in code.
+- The planning/backlog layer is stale in a few places: `TODO.md`, `plan/design-user-briefing-1.md`, and parts of `AGENTS.md` still describe work as open/stubbed even when code and tests now exist.
+- Delivery is intentionally stubbed in docs **and** code; that is a documented product choice, not an accidental omission.
+
+## 2. Requirement Trace Matrix
+
+| ID | Source | Requirement | Implementation evidence | Test evidence | Status |
+|---|---|---|---|---|---|
+| REQ-001 | `plan/design-user-briefing-1.md` | Build a HA custom integration for per-user daily briefings with UI setup. | `manifest.json`, `__init__.py`, `config_flow.py` | `tests/test_config_flow.py` | ✅ |
+| REQ-002 | `README.md`, plan REQ-002 | One config entry per user profile. | `config_flow.py` user step + unique-id/title handling; `models.py`/`coordinator.py` keyed by entry | `tests/test_config_flow.py` | ✅ |
+| REQ-003 | `README.md`, plan REQ-003 | One snippet subentry per briefing purpose; allow multiple instances. | `config_flow.py` subentry flow; `sensor.py` dynamic snippet entities | `tests/test_config_flow.py`, `tests/test_sensor.py` | ✅ |
+| REQ-004 | plan REQ-004 | v1 is rule-based only; no LLM required. | Provider normalization + `rendering.py` phrase selection; no LLM runtime path | `tests/test_rendering.py` | ✅ |
+| REQ-005 | plan REQ-005 | Use scenario phrase banks with deterministic variation. | `rendering.py`; phrase YAML files under `phrases/` | `tests/test_rendering.py` | ✅ |
+| REQ-006 | plan REQ-006 | Expose one final briefing entity per user and one entity per snippet instance. | `sensor.py` summary/status/generated_at/snippet/status sensors | `tests/test_sensor.py` | ✅ |
+| REQ-007 | plan REQ-007 | Separate generation from delivery. | `coordinator.py` builds `BriefingResult`; `notification.py`/`dashboard.py` payload builders; `services.py`/`button.py` consume cached result | `tests/test_services.py`, `tests/test_notification.py`, `tests/test_dashboard.py` | ✅ |
+| REQ-008 | plan REQ-008 | Provide scheduled and on-demand generation paths. | On-demand: `generate`/`preview` services and generate button. Scheduled path is expected via HA automations, not built in. | Service tests only | ⚠️ |
+| REQ-009 | plan REQ-009 | Support v1 provider types: calendar, weather, beach, wind, tasks, news, home status, compliments, and mail-summary stub. | All provider files are registered in `providers/registry.py`; real implementations exist for calendar/weather/task_summary/compliment/custom_text; others inherit `StubBriefingProvider` | `tests/test_registry.py`, `tests/test_providers.py`, `tests/test_provider_schemas.py` | ⚠️ |
+| REQ-010 | plan REQ-010 | Keep design/packaging consistent with author's other integrations. | HACS metadata, workflows, README/docs layout, `manifest.json` | No direct test | ✅ |
+| REQ-011 | plan REQ-011 | Use HA-native config flows, services, selectors, HACS conventions. | `config_flow.py`, `services.yaml`, `strings.json`, workflows | `tests/test_config_flow.py`, `tests/test_provider_schemas.py`, `tests/test_services.py` | ✅ |
+| REQ-012 | plan REQ-012 | Preserve clean extension path for future notifications, Assist, richer adapters. | `const.py` includes `notification_stub`/`voice_future`; `notification.py` action metadata; provider registry/contracts | No direct test | ✅ |
+| REQ-013 | plan REQ-013 | Strict plugin architecture: providers can be added/replaced without core changes. | `providers/contracts.py`, `providers/registry.py`, provider metadata-driven flow | Registry tests | ⚠️ |
+| REQ-014 | plan REQ-014 | Separate provider logic from adapters, rendering, and delivery. | Separate modules exist and most providers use adapters; `custom_text` injects slot data through coordinator special-case branch (`coordinator.py:139-140`) | Indirect only | ⚠️ |
+| REQ-015 | plan REQ-015; architecture spec | Keep notification support at payload-contract/interface layer in v1. | `notification.py`, deliver stubs in `services.py:116-132` and `button.py:59-70` | `tests/test_notification.py`, `tests/test_services.py`, `tests/test_button.py` | ✅ |
+| REQ-016 | plan REQ-016 | Dashboard assembly is first-class and uses reusable fragments/templates. | `dashboard.py`, `dashboard_templates/default.yaml`, `dashboard_templates/compact.yaml` | `tests/test_dashboard.py` | ✅ |
+| REQ-017 | plan REQ-017; `specs/configuration-ux.md` | Use sections/selectors/read-only fields/data descriptions/post-create continuation. | `config_flow.py`, `strings.json` | `tests/test_config_flow.py`, `tests/test_provider_schemas.py` | ✅ |
+| REQ-018 | plan REQ-018 | Avoid advanced-mode gating. | No advanced-mode logic in `config_flow.py`; sections used instead | No direct test | ✅ |
+| REQ-019 | plan REQ-019 | Use modern options-flow pattern with `self.config_entry`. | `UserBriefingOptionsFlow` in `config_flow.py` | `tests/test_config_flow.py` | ✅ |
+| REQ-020 | plan REQ-020 | Providers may emit structured alerts alongside normal content. | `models.py` (`AlertItem`), provider implementations, `coordinator.py`, `rendering.py`, `dashboard.py`, `notification.py` | `tests/test_providers.py`, `tests/test_coordinator.py`, `tests/test_dashboard.py`, `tests/test_notification.py` | ✅ |
+| REQ-021 | plan REQ-021 | Promoted alerts render at top of briefing. | `coordinator.py:_sort_alerts`, `rendering.py:_collect_alerts` + `render_briefing_text`, `dashboard.py` alert card, notification sorting | `tests/test_dashboard.py`, `tests/test_notification.py`; TODO still says more coordinator/rendering tests needed | ⚠️ |
+| REQ-022 | plan REQ-022 | Reuse existing HA/HACS integrations through adapters. | `adapters/base.py`, `adapters/calendar.py`, `adapters/weather.py`, `adapters/todo.py`; service-backed providers use them | `tests/test_registry.py`, `tests/test_providers.py` | ✅ |
+| REQ-023 | `docs/configuration.md`, UX spec | Split immutable profile data, mutable options, and per-snippet subentries. | `config_flow.py`, `subentries.py` | `tests/test_config_flow.py`, `tests/test_subentries.py` | ✅ |
+| REQ-024 | UX spec | Reconfigure flow should support provider-driven schemas. | `config_flow.py` provider-specific reconfigure flow | `tests/test_config_flow.py` | ✅ |
+| REQ-025 | UX spec | Prevent duplicate sources when provider semantics require it. | `config_flow.py` duplicate-source/singleton checks | `tests/test_config_flow.py` | ✅ |
+| REQ-026 | UX spec | Immediately continue into first snippet after profile creation. | `config_flow.py` next-flow chaining | `tests/test_config_flow.py` | ✅ |
+| REQ-027 | contracts spec | Define normalized snippet contract with status/priority/text/scenario/data/alerts/actions. | `models.py` (`SnippetResult`, `SnippetAction`, `AlertItem`, `BriefingResult`) | `tests/test_notification.py`, `tests/test_rendering.py`, `tests/test_providers.py` | ✅ |
+| REQ-028 | contracts spec | Provider registry must expose metadata and instantiation. | `providers/registry.py` | `tests/test_registry.py` | ✅ |
+| REQ-029 | provider spec | Base provider contract should support preview, alerts, dashboard fragments, config/reconfigure schemas. | `providers/contracts.py`; provider overrides in built-ins | `tests/test_provider_schemas.py`, `tests/test_providers.py` | ✅ |
+| REQ-030 | provider spec | First real providers should use HA service adapters. | `providers/calendar.py`, `providers/weather_forecast.py`, `providers/task_summary.py` | `tests/test_providers.py` | ✅ |
+| REQ-031 | provider spec | Task summary must consume HA `todo` ecosystem, not reimplement Todoist/etc. | `adapters/todo.py`, `providers/task_summary.py` | `tests/test_providers.py` | ✅ |
+| REQ-032 | provider spec | Mail summary remains a stub contract in v1. | `providers/mail_summary_stub.py`, registry | `tests/test_registry.py`, `tests/test_provider_schemas.py` | ✅ |
+| REQ-033 | provider spec / README | Calendar/weather/task-summary/compliment should collect real data. | `providers/calendar.py`, `weather_forecast.py`, `task_summary.py`, `compliment.py` | `tests/test_providers.py` | ✅ |
+| REQ-034 | README / plan REQ-009 | Beach/wind/news/home-status should be available as provider types. | Provider classes exist, but all inherit `StubBriefingProvider` and return scaffold text | Schema coverage only | ❌ |
+| REQ-035 | contracts spec | Adapter primitives must read entity state/service responses and degrade gracefully. | `adapters/base.py`, adapter modules | `tests/test_registry.py` | ✅ |
+| REQ-036 | dashboard spec | Dashboard output should include overview/profile cards and provider fragments or fallback snippet cards. | `dashboard.py` | `tests/test_dashboard.py` | ✅ |
+| REQ-037 | dashboard spec / docs | Dashboard should expose alert block before normal informational cards. | `dashboard.py:_build_alert_card`; example templates include `Briefing Alerts` | `tests/test_dashboard.py` | ✅ |
+| REQ-038 | docs/services + contracts spec | `generate` updates coordinator-backed state. | `services.py:_handle_generate` + `coordinator.async_generate` | `tests/test_services.py` | ✅ |
+| REQ-039 | docs/services + plan TEST-016 | `preview` returns rendered result without mutating state. | `services.py:_handle_preview`; `coordinator.async_preview` | `tests/test_services.py`, `tests/test_coordinator.py` | ✅ |
+| REQ-040 | docs/services | `deliver` should use last cached result or preview, but not do real delivery yet. | `services.py:_handle_deliver`, `button.py:UserBriefingDeliverButton`, `notification.py` | `tests/test_services.py`, `tests/test_button.py`, `tests/test_notification.py` | ✅ |
+| REQ-041 | plan TEST-017 | Services must require explicit `config_entry_id` and reject unknown targets. | `_resolve_coordinator` and service validation in `services.py` | `tests/test_services.py` | ✅ |
+| REQ-042 | automation push spec | Add `custom_text` provider with slot mode and entity mode. | `providers/custom_text.py`, `config_flow.py` custom text steps | `tests/test_custom_text.py`, `tests/test_config_flow.py` | ✅ |
+| REQ-043 | automation push spec | Add `SlotEntry` model and in-memory slot store with expiry pruning. | `models.py:SlotEntry`, `coordinator.py:slot_store` pruning logic, `services.py` push/clear | `tests/test_custom_text.py` covers `SlotEntry` semantics; no direct coordinator prune test | ⚠️ |
+| REQ-044 | automation push spec | Add `push_snippet` and `clear_snippet` services with slot-mode validation. | `services.py`, `services.yaml`, `strings.json` | `tests/test_custom_text.py`, `tests/test_services.py` | ✅ |
+| REQ-045 | automation push spec | Ship bundled automation blueprints for push/clear. | `blueprints/automation/user_briefing/push_snippet.yaml`, `clear_snippet.yaml` | No blueprint-specific test | ⚠️ |
+| REQ-046 | docs/dashboards | Ship packaged YAML dashboard examples. | `dashboard_templates/default.yaml`, `compact.yaml` | No template validation test | ⚠️ |
+| REQ-047 | `AGENTS.md`, `CONTRIBUTING.md` | Keep TODO / issue / docs progress synchronized with code. | Process requirement contradicted by stale `TODO.md`, `plan/design-user-briefing-1.md`, and some `AGENTS.md` text | No test | ❌ |
+| REQ-048 | plan TEST-018 | Dynamic snippet entities should appear/update/disappear without manual reload assumptions. | `sensor.py:UserBriefingSnippetEntityManager` | `tests/test_sensor.py` | ✅ |
+| REQ-049 | plan TEST-011 | Provider failure must remain isolated to owning snippet. | `coordinator.py` per-provider try/except | `tests/test_coordinator.py` | ✅ |
+| REQ-050 | docs/services / notification spec | Notification payload should mirror HA notify fields including title/message/tag/channel/importances/badge/actions. | `notification.py` | `tests/test_notification.py` | ✅ |
+
+### Matrix summary
+
+- **Complete (`✅`)**: 40
+- **Partial / needs follow-up (`⚠️`)**: 8
+- **Missing / contradicted (`❌`)**: 2
+- **Unknown (`❓`)**: 0
+
+Primary causes of non-`✅` status:
+1. Real provider coverage is incomplete for several advertised provider types.
+2. The coordinator still contains a provider-specific `custom_text` branch, weakening the strict plugin boundary.
+3. Planning/docs are stale relative to code.
+4. Some implemented features lack direct tests (alert ordering in coordinator/rendering, slot expiry pruning, blueprints/templates validation).
+
+## 3. Gap List
+
+### Core architecture
+
+1. **Plugin-boundary leak for `custom_text`.** `coordinator.py:139-140` injects `_slot_entry` only when `provider_key == "custom_text"`. This is direct provider-specific logic in the core path and conflicts with the documented strict provider/plugin boundary.
+2. **Scheduled generation is only indirect.** The code supports on-demand generation, but there is no bundled schedule helper or explicit automation example for routine generation; scheduling remains an implied HA automation pattern.
+
+### Providers
+
+3. **`home_status` is still a scaffold provider.** `providers/home_status.py` inherits `StubBriefingProvider` with no real collection or normalization.
+4. **`news_headlines` is still a scaffold provider.** `providers/news_headlines.py` is registration-only.
+5. **`beach_conditions` is still a scaffold provider.** `providers/beach_conditions.py` exists but only returns scaffold content.
+6. **`wind_conditions` is still a scaffold provider.** `providers/wind_conditions.py` is also scaffold-only.
+7. **`mail_summary_stub` has no real adapter path yet.** This is explicitly allowed by spec, but still a real product gap if mail summaries are wanted.
+
+### Delivery / actions
+
+8. **`deliver` remains a no-op stub.** `services.py` and `button.py` confirm payload readiness but never call `notify`, `mobile_app`, TTS, or any target routing.
+9. **Notification actions are metadata only.** `notification.py:_build_actions` emits stub action descriptors, but there is no actionable-notification handler contract beyond future placeholders.
+10. **Voice delivery is only a future option string.** `const.py` and `strings.json` expose `voice_future`, but no implementation or service contract exists.
+
+### Tests / validation
+
+11. **Alert ordering/promotion tests are not fully closed out.** Behavior exists, but `TODO.md` still tracks missing coordinator/rendering tests, so the trace between spec and tests is incomplete.
+12. **Coordinator slot expiry pruning lacks a direct test.** `coordinator.py:97-105` prunes expired slots, but current tests focus on `SlotEntry` semantics rather than end-to-end pruning on generate.
+13. **Blueprint files are untested.** `blueprints/automation/user_briefing/*.yaml` exist, but there is no structural validation or smoke test around them.
+14. **Packaged dashboard templates are untested.** Static example YAML exists but is not parsed/validated by tests.
+15. **Integration entry-point coverage is absent.** `__init__.py` platform setup/unload is not directly exercised.
+
+### Documentation / tracking
+
+16. **Backlog drift:** `TODO.md` still marks issue #34 open even though `custom_text`, services, `SlotEntry`, and both blueprints now exist.
+17. **Plan drift:** `plan/design-user-briefing-1.md` still leaves TASK-015, TASK-018, TASK-020, and TASK-021 unchecked even though notification payload helpers, phrase banks, alert promotion, and dashboard alert cards are implemented.
+18. **State-description drift:** `README.md`, `docs/setup.md`, and `AGENTS.md` still emphasize earlier scaffold limitations that are no longer fully accurate (e.g., dashboard composition, dynamic subentry entities, custom_text support now exist).
+
+## 4. Shortcut / Stub Report
+
+| File | Line(s) | Finding |
+|---|---|---|
+| `custom_components/user_briefing/providers/base_stub.py` | 1, 15-16, 82-94 | Shared scaffold base. `normalize()` returns placeholder text: `"provider scaffold is configured but not yet implemented"` and `meta={"scaffold": True}`. |
+| `custom_components/user_briefing/providers/beach_conditions.py` | 1-17 | Entire provider is scaffold-only via `StubBriefingProvider`. |
+| `custom_components/user_briefing/providers/home_status.py` | 1-18 | Entire provider is scaffold-only via `StubBriefingProvider`. |
+| `custom_components/user_briefing/providers/news_headlines.py` | 1-12 | Entire provider is scaffold-only via `StubBriefingProvider`. |
+| `custom_components/user_briefing/providers/wind_conditions.py` | 1-17 | Entire provider is scaffold-only via `StubBriefingProvider`. |
+| `custom_components/user_briefing/providers/mail_summary_stub.py` | 1-12 | Mail provider intentionally remains stub-only. |
+| `custom_components/user_briefing/adapters/base.py` | 17, 104-108 | `StubAdapter` exists for unwired sources; returns empty items placeholder data. |
+| `custom_components/user_briefing/button.py` | 49-70 | Deliver button is explicitly stubbed; logs payload readiness and never delivers. |
+| `custom_components/user_briefing/services.py` | 116-132 | `deliver` handler is explicitly stubbed; no notify/mobile_app/TTS call. |
+| `custom_components/user_briefing/notification.py` | 1-10, 51, 112-133 | Module says delivery is intentionally stubbed; `_build_actions()` emits future-only action metadata. |
+| `custom_components/user_briefing/config_flow.py` | 30-37 | Compatibility placeholder class for older HA versions includes `pass`. |
+| `custom_components/user_briefing/rendering.py` | 67-70 | Fallback `pass` on interpolation failure; not a bug, but a silent shortcut path. |
+| `custom_components/user_briefing/coordinator.py` | 82-86 | Docstring still describes an earlier empty scaffold state, now outdated. |
+| `custom_components/user_briefing/coordinator.py` | 147-148 | Log message still says `failed during scaffold generation`, stale wording. |
+| `custom_components/user_briefing/coordinator.py` | 164-171 | Defensive scaffolding exception wrappers around dashboard/notification payload building. |
+| `custom_components/user_briefing/dashboard_templates/default.yaml` | 1-35 | Static illustrative example, not generated/validated at runtime. |
+| `custom_components/user_briefing/dashboard_templates/compact.yaml` | 1-28 | Static illustrative example, not generated/validated at runtime. |
+| `README.md` | 19, 34, 53-70 | Current-state section still describes broader scaffold limitations than code now shows. |
+| `docs/services.md` | 10-16, 34-36 | Service layer described as scaffold-level; deliver still intentionally stubbed. |
+| `docs/setup.md` | 25-32 | Understates implemented surface by describing config/subentry onboarding as skeleton-only. |
+| `AGENTS.md` | 283-290 | “What Is Still Stubbed” section is partially stale relative to implemented code. |
+| `TODO.md` | 30, 32 | Open backlog items no longer match current implementation status. |
+| `plan/design-user-briefing-1.md` | 44, 46-50 | Several tasks remain unchecked though corresponding code/tests exist. |
+
+## 5. Prioritized Remediation Plan
+
+### P0 — correctness / source-of-truth
+
+1. **Restore architecture boundary integrity.** Remove the `custom_text` special case from `coordinator.py` by moving slot access behind provider/adaptor seams.
+2. **Reconcile docs/backlog with reality.** Update `TODO.md`, `plan/design-user-briefing-1.md`, `README.md`, `docs/setup.md`, and `AGENTS.md` so the documented state matches the shipped code.
+3. **Close the remaining alert-ordering test gap.** Add explicit coordinator/rendering assertions for severity ordering and promotion, then clear the stale TODO item.
+
+### P1 — major functional gaps
+
+4. **Implement remaining advertised providers** (`home_status`, `news_headlines`, `beach_conditions`, `wind_conditions`) or downgrade docs/spec wording so they are clearly “planned” rather than “supported”.
+5. **Decide the fate of the `deliver` interface.** Either implement a minimal real target-routing path (e.g., configured `notify` service) or make all docs/UI label it as preview-only to avoid overpromising.
+6. **Add a real mail adapter path or formally freeze it as post-v1.** The stub contract is acceptable architecturally, but product scope should be explicit.
+
+### P2 — completeness / quality
+
+7. **Add direct tests for slot expiry pruning, blueprints, and dashboard templates.** These are implemented assets with no dedicated validation.
+8. **Add entry-point smoke tests for `__init__.py`.** Verify setup/unload and service registration lifecycle.
+9. **Refine stale scaffold wording in logs/docstrings.** Replace phrases like `scaffold generation` where runtime is now real.
+10. **Optionally define a voice-delivery contract** (even if still unimplemented) so `voice_future` is more than a label.
+
+## 6. Proposed Follow-up Issues
+
+### Issue 1 — Remove `custom_text` branching from core coordinator
+- **Scope:** Preserve the documented provider/plugin boundary by removing provider-specific logic from `UserBriefingCoordinator`.
+- **Affected files:** `custom_components/user_briefing/coordinator.py`, `providers/custom_text.py`, possibly `providers/contracts.py` / `adapters/base.py`.
+- **Acceptance criteria:**
+  - Coordinator no longer checks `provider_key == "custom_text"`.
+  - Slot-backed data reaches `custom_text` through a generic provider contract or adapter seam.
+  - No other provider-specific branches are added to core orchestration.
+- **Suggested tests:** Extend `tests/test_coordinator.py` and `tests/test_custom_text.py` to prove slot-mode generation still works with zero coordinator special-casing.
+
+### Issue 2 — Update backlog and state docs to match implementation
+- **Scope:** Repair stale source-of-truth drift across plan/backlog/docs.
+- **Affected files:** `TODO.md`, `plan/design-user-briefing-1.md`, `README.md`, `docs/setup.md`, `AGENTS.md`, possibly `CHANGELOG.md`.
+- **Acceptance criteria:**
+  - Completed custom_text/blueprint/alert/dashboard/phrase work is reflected as done.
+  - Remaining stub areas are described accurately.
+  - No file claims a feature is missing if code/tests already show it working.
+- **Suggested tests:** N/A; review-only, but run `pytest -q` after edits.
+
+### Issue 3 — Add explicit alert-ordering and promotion regression tests
+- **Scope:** Close the still-open TODO around alert severity ordering in coordinator/rendering.
+- **Affected files:** `tests/test_coordinator.py`, `tests/test_rendering.py`, optionally `TODO.md`.
+- **Acceptance criteria:**
+  - Tests assert severity ordering across mixed alert sets.
+  - Tests assert promoted alerts render before normal snippet content.
+  - Backlog item for issue #25 is updated/closed.
+- **Suggested tests:** New unit tests for `coordinator._sort_alerts()` and `rendering.render_briefing_text()`.
+
+### Issue 4 — Implement `home_status` provider
+- **Scope:** Replace scaffold output with real state collection/normalization for home-status summaries.
+- **Affected files:** `providers/home_status.py`, maybe new adapter usage; docs/spec updates; phrases asset if needed.
+- **Acceptance criteria:**
+  - Provider collects real entity/service data.
+  - Provider emits `SnippetResult` with meaningful scenarios and optional alerts.
+  - Config schema uses strong selectors.
+- **Suggested tests:** Add provider unit tests plus rendering phrase coverage.
+
+### Issue 5 — Implement `news_headlines` provider
+- **Scope:** Replace scaffold output with a real adapter-backed news summary provider.
+- **Affected files:** `providers/news_headlines.py`, maybe adapter module, phrase bank, docs.
+- **Acceptance criteria:**
+  - Provider reads from a defined HA/custom integration source.
+  - Normalization supports empty/error/ok paths.
+  - Alerts, if any, follow existing contract.
+- **Suggested tests:** New `tests/test_providers.py` cases and schema tests.
+
+### Issue 6 — Implement `beach_conditions` and `wind_conditions` providers
+- **Scope:** Replace both coastal-condition scaffolds, likely sharing adapter patterns and phrase assets.
+- **Affected files:** `providers/beach_conditions.py`, `providers/wind_conditions.py`, `adapters/catalunya_beaches.py`, phrase files, docs.
+- **Acceptance criteria:**
+  - Both providers collect real data.
+  - Severity/alert promotion rules are defined.
+  - Dashboard fragments are meaningful for both providers.
+- **Suggested tests:** Provider normalization tests, alert tests, dashboard fragment tests.
+
+### Issue 7 — Decide and implement real `deliver` routing (or downgrade the UI)
+- **Scope:** Either wire `deliver` to a configured target or make it explicitly non-delivering in UX/docs.
+- **Affected files:** `services.py`, `button.py`, `notification.py`, `const.py`, `config_flow.py`, docs/services/setup/readme.
+- **Acceptance criteria (implementation path):**
+  - Delivery target can be configured or supplied.
+  - `deliver` calls an HA notify/TTS service.
+  - Failure handling preserves generation/delivery separation.
+- **Acceptance criteria (downgrade path):**
+  - UI/docs label `deliver` as preview/contract-only.
+  - No user-facing text implies actual delivery exists.
+- **Suggested tests:** Service tests for target validation and notify-service invocation, or doc review if downgraded.
+
+### Issue 8 — Add direct tests for slot expiry pruning
+- **Scope:** Validate coordinator cleanup of expired `SlotEntry` objects on generate.
+- **Affected files:** `tests/test_coordinator.py`, possibly `tests/test_custom_text.py`.
+- **Acceptance criteria:**
+  - Expired entries are pruned before provider dispatch.
+  - Non-expired entries remain usable.
+  - Preview/generate behavior is deterministic around expiry timestamps.
+- **Suggested tests:** Freeze time or inject timestamps and assert `slot_store` mutation.
+
+### Issue 9 — Validate bundled blueprints and dashboard templates
+- **Scope:** Add automated coverage for shipped YAML assets.
+- **Affected files:** `blueprints/automation/user_briefing/*.yaml`, `custom_components/user_briefing/dashboard_templates/*.yaml`, new tests.
+- **Acceptance criteria:**
+  - Blueprints parse as YAML and contain required action fields.
+  - Dashboard template examples parse and include expected alert/overview/snippet cards.
+- **Suggested tests:** Add lightweight YAML structure tests under `tests/`.
+
+### Issue 10 — Add integration entry-point lifecycle tests
+- **Scope:** Cover setup/unload/service-registration behavior in `__init__.py`.
+- **Affected files:** `custom_components/user_briefing/__init__.py`, new `tests/test_init.py`.
+- **Acceptance criteria:**
+  - Setup entry creates coordinator and forwards platforms.
+  - Unload entry removes services when last config entry is removed.
+  - Repeated setup does not double-register services.
+- **Suggested tests:** Unit tests using lightweight HA stubs/mocks.
+
+## Test run status
+
+- Initial `pytest -q`: failed because `pytest` was not installed in the environment.
+- After installing test dependencies (`pytest`, `homeassistant`, `PyYAML`, `voluptuous`): **`167 passed`** in **1.70s**.
+- Warnings: 7 third-party deprecation warnings from upstream dependencies; no repository test failures.
+
+## Bottom line
+
+This repository is in better shape than several docs imply. Core architecture, flows, services, rendering, alerts, dashboard composition, custom_text injection, and tests are all substantially implemented. The biggest real gaps are: remaining stub providers, intentionally stubbed delivery, a small but important provider-boundary leak in the coordinator, and stale planning/docs that no longer reflect the shipped code.
