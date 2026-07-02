@@ -102,7 +102,7 @@ def _build_alerts(
                     provider_key=provider_key,
                     severity="warning",
                     title="Weather alert",
-                    text=f"Watch for severe { _normalize_condition(condition) } conditions.",
+                    text=f"Watch for severe {_normalize_condition(condition)} conditions."
                     source_label=source_ref if isinstance(source_ref, str) else None,
                     meta={"condition": condition},
                 )
