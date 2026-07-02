@@ -30,6 +30,7 @@ def list_provider_metadata() -> list[ProviderMetadata]:
 
 def create_provider(hass: HomeAssistant, provider_key: str) -> BriefingProvider:
     """Instantiate a registered provider."""
+    ensure_builtin_providers_loaded()
     provider_cls = _REGISTRY[provider_key]
     return provider_cls(hass)
 
