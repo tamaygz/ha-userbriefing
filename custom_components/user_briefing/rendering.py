@@ -33,12 +33,12 @@ def _collect_alerts(briefing: BriefingResult) -> list[AlertItem]:
         for snippet in briefing.snippets:
             alerts.extend(snippet.alerts)
 
-        severity_order = {
-            severity: index for index, severity in enumerate(ALERT_SEVERITY_ORDER)
-        }
-        alerts.sort(
-            key=lambda alert: severity_order.get(alert.severity, len(severity_order))
-        )
+    severity_order = {
+        severity: index for index, severity in enumerate(ALERT_SEVERITY_ORDER)
+    }
+    alerts.sort(
+        key=lambda alert: severity_order.get(alert.severity.lower(), len(severity_order))
+    )
 
     return alerts
 
