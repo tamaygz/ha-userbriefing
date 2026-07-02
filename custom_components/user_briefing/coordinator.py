@@ -144,7 +144,7 @@ class UserBriefingCoordinator:
                 snippet.title = subentry_options.get(CONF_TITLE_OVERRIDE) or snippet.title
                 snippets.append(snippet)
                 alerts.extend(snippet.alerts)
-            except Exception as err:  # pragma: no cover - defensive scaffolding
+            except Exception as err:
                 _LOGGER.exception("Provider %s failed during scaffold generation: %s", provider_key, err)
 
         result = BriefingResult(

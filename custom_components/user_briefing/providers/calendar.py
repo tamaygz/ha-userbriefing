@@ -115,7 +115,7 @@ class CalendarProvider(StubBriefingProvider):
                 title=self.describe().name,
                 text="Calendar data is unavailable right now.",
                 scenario="error",
-                data={"events": []},
+                data={"events": [], "event_count": 0},
                 meta={"source_ref": source_ref},
             )
 
@@ -128,7 +128,7 @@ class CalendarProvider(StubBriefingProvider):
                 title=self.describe().name,
                 text="No upcoming calendar events in the next 24 hours.",
                 scenario="empty",
-                data={"events": events},
+                data={"events": events, "event_count": 0},
                 meta={"source_ref": source_ref},
             )
 
@@ -140,15 +140,16 @@ class CalendarProvider(StubBriefingProvider):
 
         extra_count = max(0, len(events) - len(visible_events))
         extra_suffix = f" and {extra_count} more" if extra_count else ""
+        event_list = "; ".join(summaries) + extra_suffix
         return SnippetResult(
             provider_key=self.describe().key,
             instance_id=instance_id,
             status="ok",
             priority="optional",
             title=self.describe().name,
-            text=f"Upcoming events: {'; '.join(summaries)}{extra_suffix}.",
+            text=f"Upcoming events: {event_list}.",
             scenario="upcoming_events",
-            data={"events": events},
+            data={"events": events, "event_list": event_list, "event_count": len(events)},
             meta={"source_ref": source_ref},
             alerts=_build_alerts(
                 events,
