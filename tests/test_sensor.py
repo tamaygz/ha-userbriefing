@@ -109,10 +109,9 @@ def test_async_setup_entry_syncs_snippet_sensor_lifecycle() -> None:
     ]
     assert [entity.subentry_id for entity in snippet_entities] == ["snippet-1"]
     assert [entity.subentry_id for entity in snippet_status_entities] == ["snippet-1"]
-    assert add_entities.calls[1:3] == [
-        {"config_subentry_id": "snippet-1"},
-        {"config_subentry_id": "snippet-1"},
-    ]
+    # Snippet entities are added in a single batch, without config_subentry_id,
+    # so they all appear under the one profile device rather than per-subentry.
+    assert add_entities.calls[1] == {}
 
     entry.subentries["snippet-1"].title = "Updated Calendar"
     entry.subentries["snippet-2"] = _subentry("snippet-2", "Weather")
@@ -148,10 +147,8 @@ def test_async_setup_entry_syncs_snippet_sensor_lifecycle() -> None:
         snippet_entities_by_type[(UserBriefingSnippetStatusSensor, "snippet-2")].name
         == "Alex Weather Status"
     )
-    assert add_entities.calls[3:5] == [
-        {"config_subentry_id": "snippet-2"},
-        {"config_subentry_id": "snippet-2"},
-    ]
+    # snippet-2 entities also added in a single batch, no config_subentry_id
+    assert add_entities.calls[2] == {}
 
     snippet_entities_by_type[(UserBriefingSnippetSensor, "snippet-2")].async_remove.reset_mock()
     snippet_entities_by_type[
@@ -167,56 +164,6 @@ def test_async_setup_entry_syncs_snippet_sensor_lifecycle() -> None:
     snippet_entities_by_type[
         (UserBriefingSnippetStatusSensor, "snippet-2")
     ].async_remove.assert_awaited_once()
-
-
-def test_async_setup_entry_falls_back_without_config_subentry_id_support() -> None:
-    entry = _FakeEntry({"snippet-1": _subentry("snippet-1", "Calendar")})
-    hass = SimpleNamespace(data={DOMAIN: {entry.entry_id: _FakeCoordinator()}})
-    # Recorder patches entities with mocks AND raises TypeError for config_subentry_id.
-    # Raising on the first attempt triggers the compatibility fallback; the second
-    # plain-call then patches the entity so async_write_ha_state() is safe later.
-    recorder = _AddEntitiesRecorder()
-    original_call = recorder.__class__.__call__
-
-    def limited_call(self_rec, entities, **kwargs) -> None:
-        if "config_subentry_id" in kwargs:
-            raise TypeError("got an unexpected keyword argument 'config_subentry_id'")
-        original_call(self_rec, entities, **kwargs)
-
-    recorder.__class__ = type(
-        "_LimitedRecorder",
-        (_AddEntitiesRecorder,),
-        {"__call__": limited_call},
-    )
-
-    asyncio.run(async_setup_entry(hass, entry, recorder))
-
-    snippet_calls = [
-        c for c in recorder.calls
-        if any(isinstance(e, UserBriefingSnippetSensor) for e in recorder.entities)
-    ]
-    # At least one plain-call (no kwargs) added the snippet entity after the fallback
-    assert len(snippet_calls) >= 1
-    assert all(c == {} for c in snippet_calls)
-
-    # Flag stays latched — second subentry also added without the kwarg
-    entry.subentries["snippet-2"] = _subentry("snippet-2", "Weather")
-    asyncio.run(entry.async_fire_update())
-
-    new_snippet_entities = [
-        e for e in recorder.entities
-        if isinstance(e, UserBriefingSnippetSensor)
-        and getattr(e, "subentry_id", None) == "snippet-2"
-    ]
-    new_snippet_status_entities = [
-        e for e in recorder.entities
-        if isinstance(e, UserBriefingSnippetStatusSensor)
-        and getattr(e, "subentry_id", None) == "snippet-2"
-    ]
-    assert len(new_snippet_entities) == 1
-    assert len(new_snippet_status_entities) == 1
-    # All calls after setup should have empty kwargs (flag stayed False)
-    assert all(c == {} for c in recorder.calls[3:])  # calls[0] is setup; calls[1:3] are initial snippet entities
 
 
 def test_generated_at_and_snippet_status_entities_expose_dedicated_state() -> None:
@@ -256,21 +203,3 @@ def test_generated_at_and_snippet_status_entities_expose_dedicated_state() -> No
         "priority": "required",
         "scenario": "busy",
     }
-
-
-def test_async_add_snippet_entities_reraises_unrelated_type_error() -> None:
-    """TypeError unrelated to config_subentry_id must propagate, not be swallowed."""
-    import pytest
-
-    coordinator = _FakeCoordinator()
-    entry = _FakeEntry({"snippet-1": _subentry("snippet-1", "Calendar")})
-
-    def broken_add_entities(entities, **kwargs) -> None:
-        # Raises a TypeError whose message does NOT contain "unexpected keyword argument"
-        raise TypeError("bad value type for entities argument")
-
-    manager = UserBriefingSnippetEntityManager(coordinator, entry, broken_add_entities)
-    entity = UserBriefingSnippetSensor(coordinator, entry, _subentry("s1", "Cal"))
-
-    with pytest.raises(TypeError, match="bad value type"):
-        manager._async_add_snippet_entities([entity])

@@ -1,7 +1,6 @@
 """Sensor entities for User Briefing."""
 
 from __future__ import annotations
-from collections.abc import Iterable
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -52,7 +51,6 @@ class UserBriefingSnippetEntityManager:
         self._entry = entry
         self._async_add_entities = async_add_entities
         self._entities: dict[str, list[UserBriefingSnippetEntity]] = {}
-        self._supports_config_subentry_id = True
 
     async def async_handle_entry_update(
         self,
@@ -103,27 +101,8 @@ class UserBriefingSnippetEntityManager:
                 entity.update_from_entry(self._entry, subentry)
                 entity.async_write_ha_state()
 
-        self._async_add_snippet_entities(new_entities)
-
-    def _async_add_snippet_entities(
-        self,
-        entities: Iterable[UserBriefingSnippetEntity],
-    ) -> None:
-        """Add snippet entities with subentry association when supported."""
-        for entity in entities:
-            if self._supports_config_subentry_id:
-                try:
-                    self._async_add_entities(
-                        [entity],
-                        config_subentry_id=entity.subentry_id,
-                    )
-                    continue
-                except TypeError as err:
-                    if "unexpected keyword argument" not in str(err):
-                        raise
-                    self._supports_config_subentry_id = False
-
-            self._async_add_entities([entity])
+        if new_entities:
+            self._async_add_entities(new_entities)
 
 
 class UserBriefingSummarySensor(UserBriefingEntity, SensorEntity):
