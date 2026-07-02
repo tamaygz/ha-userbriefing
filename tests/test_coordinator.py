@@ -229,9 +229,13 @@ def _make_hass(services=None) -> SimpleNamespace:
         async def async_call(self, domain, service, data, *, blocking=True, return_response=True):
             return {}
 
+    async def _async_add_executor_job(target, *args):
+        return target(*args)
+
     return SimpleNamespace(
         services=services or _NullServices(),
         states=SimpleNamespace(get=lambda _eid: None),
+        async_add_executor_job=_async_add_executor_job,
     )
 
 
@@ -449,6 +453,26 @@ def test_preview_does_not_notify_listeners() -> None:
     asyncio.run(coordinator.async_preview())
 
     assert notified == []
+
+
+def test_generate_renders_in_executor_job() -> None:
+    """Rendering should run through hass.async_add_executor_job."""
+    sub = _make_subentry("sub-1", "compliment")
+    entry = _make_entry([sub])
+    calls: list[str] = []
+
+    async def _async_add_executor_job(target, *args):
+        calls.append(target.__name__)
+        return target(*args)
+
+    hass = _make_hass()
+    hass.async_add_executor_job = _async_add_executor_job
+    coordinator = UserBriefingCoordinator(hass, entry)
+
+    result = asyncio.run(coordinator.async_generate())
+
+    assert result.rendered_text
+    assert calls == ["render_briefing_text"]
 
 
 # ---------------------------------------------------------------------------

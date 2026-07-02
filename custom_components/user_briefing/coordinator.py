@@ -154,7 +154,13 @@ class UserBriefingCoordinator:
             snippets=snippets,
             alerts=_sort_alerts(alerts),
         )
-        result.rendered_text = render_briefing_text(result)
+        if hasattr(self.hass, "async_add_executor_job"):
+            result.rendered_text = await self.hass.async_add_executor_job(
+                render_briefing_text,
+                result,
+            )
+        else:  # pragma: no cover - test/mock fallback
+            result.rendered_text = render_briefing_text(result)
         try:
             result.delivery_payloads["dashboard"] = build_dashboard_delivery_payload(
                 self.hass,
