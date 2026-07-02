@@ -133,8 +133,8 @@ class UserBriefingCoordinator:
             if not provider_key:
                 continue
 
-            provider = create_provider(self.hass, provider_key)
             try:
+                provider = create_provider(self.hass, provider_key)
                 collect_config = dict(provider_config)
                 if provider_key == "custom_text" and subentry_id in self.slot_store:
                     collect_config["_slot_entry"] = self.slot_store[subentry_id]
