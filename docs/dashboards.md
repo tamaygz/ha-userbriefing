@@ -5,6 +5,7 @@ Dashboards are intended to be assembled from:
 - profile-level briefing entities
 - snippet-level entities
 - provider-declared dashboard fragments
+- normalized `SnippetResult` / `AlertItem` output
 - packaged YAML template examples
 
 The current entity surface for dashboard use is:
@@ -15,4 +16,11 @@ The current entity surface for dashboard use is:
 - one snippet text sensor per configured snippet
 - one snippet status sensor per configured snippet
 
-The scaffold includes placeholder dashboard templates under `custom_components/user_briefing/dashboard_templates/`.
+Generated dashboard composition now adds:
+
+- a top-of-dashboard `briefing_alerts` markdown section derived from normalized alerts
+- a `briefing_overview` card for the profile-level entities
+- provider fragment cards when a provider declares them
+- a fallback snippet card when a provider does not declare dashboard fragments
+
+The packaged templates under `custom_components/user_briefing/dashboard_templates/` now include end-to-end Alex examples for the default and compact layouts. Entity IDs in these templates are illustrative and may differ in your entity registry.

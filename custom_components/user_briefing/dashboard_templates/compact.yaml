@@ -1,9 +1,28 @@
-title: User Briefing Compact
+title: Alex User Briefing
 views:
-  - title: Compact
-    path: briefing-compact
+  - title: Alex
+    path: alex-briefing-compact
     cards:
       - type: markdown
-        title: Compact Briefing
+        title: Briefing Alerts
         content: >
-          Dashboard fragments will be composed here from provider-declared cards.
+          No active briefing alerts.
+      - type: markdown
+        title: Briefing Summary
+        content: >
+          Good morning, Alex. Review your calendar, weather, and task cards below.
+      - type: entities
+        title: Briefing Status
+        entities:
+          - sensor.alex_briefing_status
+          - sensor.alex_briefing_last_generated
+      - type: entities
+        title: Calendar Summary
+        entities:
+          - sensor.alex_calendar
+          - sensor.alex_calendar_status
+      - type: entities
+        title: Task Summary
+        entities:
+          - sensor.alex_tasks
+          - sensor.alex_tasks_status
