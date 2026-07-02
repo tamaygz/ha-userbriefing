@@ -153,7 +153,7 @@ async def async_register_services(hass: HomeAssistant) -> None:
                 translation_key="unknown_config_entry_id",
             )
 
-        expires_in_hours = float(call.data.get("expires_in_hours", 0))
+        expires_in_hours = int(call.data.get("expires_in_hours", 0))
         now = datetime.now(tz=timezone.utc)
         expires_at = now + timedelta(hours=expires_in_hours) if expires_in_hours > 0 else None
 
