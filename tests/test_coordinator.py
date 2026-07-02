@@ -1,8 +1,9 @@
 """Coordinator behavior tests.
 
 Covers TEST-011 (adapter failure isolation), TEST-015 (enabled / order /
-priority), TEST-016 (preview non-mutation), and TEST-019 (alert collection
-passthrough) from plan/design-user-briefing-1.md.
+priority), TEST-016 (preview non-mutation), TEST-019 (alert collection
+passthrough), and TEST-020 (alert severity ordering and promotion) from
+plan/design-user-briefing-1.md.
 
 Tests are intentionally self-contained: they use SimpleNamespace mocks for
 hass and ConfigEntry so they run without a real Home Assistant instance.
@@ -25,7 +26,8 @@ from custom_components.user_briefing.const import (
     CONF_TITLE_OVERRIDE,
     SUBENTRY_TYPE_SNIPPET,
 )
-from custom_components.user_briefing.coordinator import UserBriefingCoordinator
+from custom_components.user_briefing.coordinator import UserBriefingCoordinator, _sort_alerts
+from custom_components.user_briefing.models import AlertItem, SnippetResult
 
 
 # ---------------------------------------------------------------------------
@@ -532,3 +534,208 @@ def test_adapter_backed_provider_collects_and_normalizes_output() -> None:
     assert len(result.snippets) == 1
     assert result.snippets[0].status == "ok"
     assert "sunny" in result.snippets[0].text
+
+
+# ---------------------------------------------------------------------------
+# Alert severity ordering — _sort_alerts unit tests (TEST-020)
+# ---------------------------------------------------------------------------
+
+
+def test_sort_alerts_orders_critical_before_warning_before_info() -> None:
+    """_sort_alerts must produce critical → warning → info regardless of input order."""
+    alerts = [
+        AlertItem(alert_key="a-info", provider_key="p", severity="info", title="Info", text=""),
+        AlertItem(alert_key="a-warning", provider_key="p", severity="warning", title="Warn", text=""),
+        AlertItem(alert_key="a-critical", provider_key="p", severity="critical", title="Crit", text=""),
+    ]
+    result = _sort_alerts(alerts)
+    assert [a.severity for a in result] == ["critical", "warning", "info"]
+
+
+def test_sort_alerts_unknown_severity_sorted_last() -> None:
+    """Unknown severity values must be placed after all known severity levels."""
+    alerts = [
+        AlertItem(alert_key="a-unknown", provider_key="p", severity="urgent", title="Unknown", text=""),
+        AlertItem(alert_key="a-info", provider_key="p", severity="info", title="Info", text=""),
+        AlertItem(alert_key="a-critical", provider_key="p", severity="critical", title="Crit", text=""),
+    ]
+    result = _sort_alerts(alerts)
+    assert result[0].severity == "critical"
+    assert result[1].severity == "info"
+    assert result[2].severity == "urgent"
+
+
+def test_sort_alerts_empty_list_returns_empty() -> None:
+    """_sort_alerts must return an empty list when given no alerts."""
+    assert _sort_alerts([]) == []
+
+
+def test_sort_alerts_same_severity_preserves_relative_order() -> None:
+    """Alerts with identical severity must keep their relative input order (stable sort)."""
+    alerts = [
+        AlertItem(alert_key="w-first", provider_key="p", severity="warning", title="First", text=""),
+        AlertItem(alert_key="w-second", provider_key="p", severity="warning", title="Second", text=""),
+        AlertItem(alert_key="w-third", provider_key="p", severity="warning", title="Third", text=""),
+    ]
+    result = _sort_alerts(alerts)
+    assert [a.alert_key for a in result] == ["w-first", "w-second", "w-third"]
+
+
+def test_sort_alerts_handles_mixed_case_severity() -> None:
+    """Severity comparisons must be case-insensitive."""
+    alerts = [
+        AlertItem(alert_key="a-info-upper", provider_key="p", severity="INFO", title="Info upper", text=""),
+        AlertItem(alert_key="a-crit-mixed", provider_key="p", severity="Critical", title="Crit mixed", text=""),
+    ]
+    result = _sort_alerts(alerts)
+    assert result[0].severity == "Critical"
+    assert result[1].severity == "INFO"
+
+
+# ---------------------------------------------------------------------------
+# Alert promotion — multi-provider coordinator integration (TEST-020)
+# ---------------------------------------------------------------------------
+
+
+def _make_fake_provider(snippet: SnippetResult) -> object:
+    """Return a minimal fake provider that returns *snippet* from normalize()."""
+
+    class _FakeProvider:
+        def __init__(self, s: SnippetResult) -> None:
+            self._snippet = s
+
+        async def async_collect(self, config: dict) -> dict:
+            return config
+
+        def normalize(self, payload: dict, instance_id: str) -> SnippetResult:
+            return self._snippet
+
+    return _FakeProvider(snippet)
+
+
+def test_coordinator_merges_and_sorts_alerts_from_multiple_providers() -> None:
+    """Alerts emitted by multiple providers must be merged and sorted by severity.
+
+    The resulting result.alerts must be ordered critical → warning → info
+    regardless of the order providers were executed.
+    """
+    sub_1 = _make_subentry("sub-1", "calendar")
+    sub_2 = _make_subentry("sub-2", "weather_forecast")
+    entry = _make_entry([sub_1, sub_2])
+
+    providers = {
+        "calendar": _make_fake_provider(
+            SnippetResult(
+                provider_key="calendar",
+                instance_id="sub-1",
+                status="ok",
+                priority="required",
+                title="Calendar",
+                text="Calendar body.",
+                scenario="normal",
+                alerts=[
+                    AlertItem(
+                        alert_key="cal-info",
+                        provider_key="calendar",
+                        severity="info",
+                        title="Calendar note",
+                        text="Team lunch is optional.",
+                    ),
+                    AlertItem(
+                        alert_key="cal-warning",
+                        provider_key="calendar",
+                        severity="warning",
+                        title="Calendar warning",
+                        text="Leave early for traffic.",
+                    ),
+                ],
+            )
+        ),
+        "weather_forecast": _make_fake_provider(
+            SnippetResult(
+                provider_key="weather_forecast",
+                instance_id="sub-2",
+                status="ok",
+                priority="required",
+                title="Weather",
+                text="Weather body.",
+                scenario="normal",
+                alerts=[
+                    AlertItem(
+                        alert_key="wx-critical",
+                        provider_key="weather_forecast",
+                        severity="critical",
+                        title="Weather alert",
+                        text="Hail starts in 15 minutes.",
+                    ),
+                ],
+            )
+        ),
+    }
+
+    with (
+        patch("custom_components.user_briefing.coordinator.ensure_builtin_providers_loaded"),
+        patch(
+            "custom_components.user_briefing.coordinator.create_provider",
+            side_effect=lambda hass, provider_key: providers[provider_key],
+        ),
+        patch(
+            "custom_components.user_briefing.coordinator.build_dashboard_delivery_payload",
+            return_value={},
+        ),
+    ):
+        result = asyncio.run(UserBriefingCoordinator(_make_hass(), entry).async_generate())
+
+    assert [a.alert_key for a in result.alerts] == ["wx-critical", "cal-warning", "cal-info"]
+
+
+def test_coordinator_alerts_appear_before_snippets_in_rendered_text() -> None:
+    """Promoted alerts must be present at the start of result.rendered_text.
+
+    This validates that the coordinator wires alert promotion through to the
+    rendered output so that urgent items lead the briefing.
+    """
+    sub_1 = _make_subentry("sub-1", "calendar")
+    entry = _make_entry([sub_1])
+
+    providers = {
+        "calendar": _make_fake_provider(
+            SnippetResult(
+                provider_key="calendar",
+                instance_id="sub-1",
+                status="ok",
+                priority="required",
+                title="Calendar",
+                text="Calendar body.",
+                scenario="normal",
+                alerts=[
+                    AlertItem(
+                        alert_key="cal-critical",
+                        provider_key="calendar",
+                        severity="critical",
+                        title="Critical alert",
+                        text="Urgent issue detected.",
+                    ),
+                ],
+            )
+        ),
+    }
+
+    with (
+        patch("custom_components.user_briefing.coordinator.ensure_builtin_providers_loaded"),
+        patch(
+            "custom_components.user_briefing.coordinator.create_provider",
+            side_effect=lambda hass, provider_key: providers[provider_key],
+        ),
+        patch(
+            "custom_components.user_briefing.coordinator.build_dashboard_delivery_payload",
+            return_value={},
+        ),
+    ):
+        result = asyncio.run(UserBriefingCoordinator(_make_hass(), entry).async_generate())
+
+    assert result.rendered_text.startswith("[CRITICAL]")
+    assert "Calendar body." in result.rendered_text
+    alert_pos = result.rendered_text.index("[CRITICAL]")
+    body_pos = result.rendered_text.index("Calendar body.")
+    assert alert_pos < body_pos
