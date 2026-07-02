@@ -82,11 +82,18 @@ def _collect_alerts(briefing: BriefingResult) -> list[AlertItem]:
         for snippet in briefing.snippets:
             alerts.extend(snippet.alerts)
 
-    severity_order = {
-        severity: index for index, severity in enumerate(ALERT_SEVERITY_ORDER)
-    }
+    seen: set[tuple[str, str]] = set()
+    deduped: list[AlertItem] = []
+    for alert in alerts:
+        key = (alert.provider_key, alert.alert_key)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(alert)
+
+    severity_order = {severity: index for index, severity in enumerate(ALERT_SEVERITY_ORDER)}
     return sorted(
-        alerts,
+        deduped,
         key=lambda a: (
             severity_order.get(a.severity, len(severity_order)),
             a.provider_key,
