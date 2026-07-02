@@ -22,12 +22,21 @@ def _load_phrase_bank(provider_key: str) -> dict[str, list[str]]:
     """Return the scenario→phrases mapping for *provider_key*, loading it once."""
     if provider_key not in _PHRASE_BANK_CACHE:
         path = _PHRASES_DIR / f"{provider_key}.yaml"
+        bank: dict[str, list[str]] = {}
         if path.is_file():
-            with path.open(encoding="utf-8") as fh:
-                raw: Any = yaml.safe_load(fh) or {}
-            _PHRASE_BANK_CACHE[provider_key] = raw.get("scenarios", {})
-        else:
-            _PHRASE_BANK_CACHE[provider_key] = {}
+            try:
+                with path.open(encoding="utf-8") as fh:
+                    raw: Any = yaml.safe_load(fh) or {}
+            except (OSError, yaml.YAMLError):
+                raw = {}
+            scenarios = raw.get("scenarios") if isinstance(raw, dict) else {}
+            if isinstance(scenarios, dict):
+                for scenario, phrases in scenarios.items():
+                    if isinstance(phrases, str):
+                        bank[str(scenario)] = [phrases]
+                    elif isinstance(phrases, list):
+                        bank[str(scenario)] = [p for p in phrases if isinstance(p, str)]
+        _PHRASE_BANK_CACHE[provider_key] = bank
     return _PHRASE_BANK_CACHE[provider_key]
 
 
