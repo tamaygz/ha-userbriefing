@@ -78,14 +78,18 @@ class CustomTextProvider(BriefingProvider):
     ) -> vol.Schema:
         """Return reconfigure schema with default_text for slot mode."""
         mode = existing_data.get(CONF_CUSTOM_TEXT_MODE, CUSTOM_TEXT_MODE_SLOT)
+        mode_label = (
+            "Push service (automation-driven)"
+            if mode == CUSTOM_TEXT_MODE_SLOT
+            else "Entity watcher"
+        )
         schema_dict: dict = {
             vol.Optional(CONF_CUSTOM_TEXT_SLOT_LABEL, default=""): selector.TextSelector(),
+            # Reconfigure is a single-step form; keep mode fixed to avoid saving an
+            # invalid config without collecting the required fields for the chosen mode.
             vol.Required(CONF_CUSTOM_TEXT_MODE, default=mode): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(value=CUSTOM_TEXT_MODE_SLOT, label="Push service (automation-driven)"),
-                        selector.SelectOptionDict(value=CUSTOM_TEXT_MODE_ENTITY, label="Entity watcher"),
-                    ],
+                    options=[selector.SelectOptionDict(value=mode, label=mode_label)],
                     mode=selector.SelectSelectorMode.LIST,
                 )
             ),
