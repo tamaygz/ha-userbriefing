@@ -238,7 +238,18 @@ def test_find_duplicate_subentry_returns_true_when_same_provider_and_source_exis
     )
     parent_entry = SimpleNamespace(subentries={"s1": subentry})
     flow._get_parent_entry = lambda: parent_entry  # type: ignore[method-assign]
-    assert flow._find_duplicate_subentry("calendar", "calendar_entity:calendar.work") is True
+
+    class _FakeProvider:
+        def get_instance_unique_key(self, config):
+            source_type = config.get("source_type")
+            source_ref = config.get("source_ref")
+            return f"{source_type}:{source_ref}" if source_type and source_ref else None
+
+    with patch(
+        "custom_components.user_briefing.config_flow.create_provider",
+        return_value=_FakeProvider(),
+    ):
+        assert flow._find_duplicate_subentry("calendar", "calendar_entity:calendar.work") is True
 
 
 def test_find_duplicate_subentry_ignores_current_subentry_during_reconfigure() -> None:
